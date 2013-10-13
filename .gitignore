@@ -1,0 +1,9 @@
+*.o
+*.pyc
+*~
+\#*#
+.sconsign.dblite
+bin/
+bin_debug/
+bin_profile/
+TAGS
