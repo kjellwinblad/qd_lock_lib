@@ -5,39 +5,47 @@
 
 #define CACHE_LINE_SIZE 64
 
-typedef union CacheLinePaddedFlagImpl {
+#ifndef _ISOC11_SOURCE
+#    if _POSIX_C_SOURCE >= 200112
+#        include <malloc.h>
+#        define aligned_alloc memalign
+#    endif
+#endif
+
+
+typedef union {
     volatile atomic_flag value;
     char padding[CACHE_LINE_SIZE];
-} CacheLinePaddedFlag;
+} LLPaddedFlag;
 
-typedef union CacheLinePaddedBoolImpl {
+typedef union {
     volatile atomic_bool value;
     char padding[CACHE_LINE_SIZE];
-} CacheLinePaddedBool;
+} LLPaddedBool;
 
-typedef union CacheLinePaddedIntImpl {
+typedef union {
     volatile atomic_int value;
     char padding[CACHE_LINE_SIZE];
-} CacheLinePaddedInt;
+} LLPaddedInt;
 
-typedef union CacheLinePaddedUIntImpl {
+typedef union {
     volatile atomic_uint value;
     char padding[CACHE_LINE_SIZE];
-} CacheLinePaddedUInt;
+} LLPaddedUInt;
 
-typedef union CacheLinePaddedULongImpl {
+typedef union {
     volatile atomic_ulong value;
     char padding[CACHE_LINE_SIZE];
-} CacheLinePaddedULong;
+} LLPaddedULong;
 
-typedef union CacheLinePaddedPointerImpl {
+typedef union {
     volatile atomic_intptr_t value;
     char padding[CACHE_LINE_SIZE];
-} CacheLinePaddedPointer;
+} LLPaddedPointer;
 
-typedef union CacheLinePaddedDoubleImpl {
+typedef union {
     volatile double value;
     char padding[CACHE_LINE_SIZE];
-} CacheLinePaddedDouble;
+} LLPaddedDouble;
 
 #endif

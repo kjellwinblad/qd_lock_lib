@@ -11,7 +11,7 @@
 
 /* Queue Delegation Lock */
 
-typedef struct QDLockImpl {
+typedef struct {
     TATASLock mutexLock;
     QDQueue queue;
 } QDLock;
@@ -21,10 +21,31 @@ void qd_initialize(QDLock * lock){
     qdq_initialize(&lock->queue);
 }
 
-void qd_delegate(QDLock* l,
+void qd_lock(void * lock) {
+    QDLock *l = (QDLock*)lock;
+    tatas_lock(&l->mutexLock);
+}
+
+void qd_unlock(void * lock) {
+    QDLock *l = (QDLock*)lock;
+    tatas_unlock(&l->mutexLock);
+}
+
+bool qd_is_locked(void * lock){
+    QDLock *l = (QDLock*)lock;
+    return tatas_is_locked(&l->mutexLock);
+}
+
+bool qd_try_lock(void * lock) {
+    QDLock *l = (QDLock*)lock;
+    return tatas_try_lock(&l->mutexLock);
+}
+
+void qd_delegate(void* lock,
                  void (*funPtr)(unsigned int, void *), 
                  unsigned int messageSize,
                  void * messageAddress) {
+    QDLock *l = (QDLock*)lock;
     while(true) {
         if(tatas_try_lock(&l->mutexLock)) {
             qdq_open(&l->queue);
@@ -41,5 +62,17 @@ void qd_delegate(QDLock* l,
         thread_yield();
     }
 }
+
+_Alignas(CACHE_LINE_SIZE)
+OOLockMethodTable QD_LOCK_METHOD_TABLE = 
+{
+     .free = &free,
+     .lock = &qd_lock,
+     .unlock = &qd_unlock,
+     .is_locked = &qd_is_locked,
+     .try_lock = &qd_try_lock,
+     .delegate = &qd_delegate
+};
+
 
 #endif

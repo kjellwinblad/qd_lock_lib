@@ -3,32 +3,40 @@
 
 #include "misc/thread_includes.h"
 #include "misc/bsd_stdatomic.h"//Until c11 stdatomic.h is available
+#include <string.h>
 
 #include "locks/locks.h"
 
 typedef union {
     unsigned int value;
     char pad[CACHE_LINE_SIZE];
-} CacheLinePaddedSeed;
+} LLPaddedSeed;
 
 typedef union {
     unsigned long value;
     char pad[CACHE_LINE_SIZE];
-} CacheLinePaddedLocalCounter;
+} LLPaddedLocalCounter;
+
+typedef union {
+    LL_lock_type_name value;
+    char pad[CACHE_LINE_SIZE];
+} LLLockTypeNameWrapper;
 
 typedef struct {
     unsigned long * localInCSCounter;
     unsigned int * localSeed;
 } ThreadLocalData;
 
+LLLockTypeNameWrapper lock_type;
+
 int test_create(){
-    LOCK_TYPE * lock = LL_create(LOCK_TYPE_NAME);
+    LOCK_TYPE * lock = LL_create(lock_type.value);
     LL_free(lock);
     return 1;
 }
 
 int test_lock(){
-    LOCK_TYPE * lock = LL_create(LOCK_TYPE_NAME);
+    LOCK_TYPE * lock = LL_create(lock_type.value);
     for(int i = 0; i < 10; i++){
         LL_lock((lock));
         LL_unlock(lock);
@@ -38,7 +46,7 @@ int test_lock(){
 }
 
 int test_is_locked(){
-    LOCK_TYPE * lock = LL_create(LOCK_TYPE_NAME);
+    LOCK_TYPE * lock = LL_create(lock_type.value);
     for(int i = 0; i < 10; i++){
         assert(LL_is_locked(lock) == false);
         LL_lock(lock);
@@ -50,11 +58,23 @@ int test_is_locked(){
     return 1;
 }
 
+int test_try_locked(){
+    LOCK_TYPE * lock = LL_create(lock_type.value);
+    for(int i = 0; i < 10; i++){
+        assert(LL_is_locked(lock) == false);
+        LL_lock(lock);
+        assert(LL_is_locked(lock) == true);
+        LL_unlock(lock);
+        assert(LL_is_locked(lock) == false);
+    }
+    LL_free(lock);
+    return 1;
+}
 
 LOCK_TYPE * lock;
-CacheLinePaddedULong counter = {.value = ATOMIC_VAR_INIT(0)};
-CacheLinePaddedBool stop = {.value = ATOMIC_FLAG_INIT};
-CacheLinePaddedDouble delegatePercentage;
+LLPaddedULong counter = {.value = ATOMIC_VAR_INIT(0)};
+LLPaddedBool stop = {.value = ATOMIC_FLAG_INIT};
+LLPaddedDouble delegatePercentage;
 
 void critical_section_code(unsigned long * localCounterPtr){
     unsigned long oldCounterValue = atomic_load(&counter.value);
@@ -88,14 +108,14 @@ void  * critical_section_thread(void * threadLocalDataVPtr){
 }
 int test_mutual_exclusion(double delegatePercentageParm){
     delegatePercentage.value = delegatePercentageParm;
-    lock = LL_create(LOCK_TYPE_NAME);
+    lock = LL_create(lock_type.value);
     struct timespec testTime= {.tv_sec = 0, .tv_nsec = 100000000}; 
     for(int i = 1; i < 10; i++){
         atomic_store(&counter.value, 0);
         atomic_store(&stop.value, false);
         pthread_t threads[i];
-        CacheLinePaddedLocalCounter localInCSCounters[i];
-        CacheLinePaddedSeed localSeeds[i];
+        LLPaddedLocalCounter localInCSCounters[i];
+        LLPaddedSeed localSeeds[i];
         ThreadLocalData * threadLocalData = aligned_alloc(CACHE_LINE_SIZE, sizeof(ThreadLocalData) * i);
         for(int n = 0; n < i; n++){
             localInCSCounters[n].value = 0;
@@ -124,13 +144,18 @@ int test_mutual_exclusion(double delegatePercentageParm){
     return 1;
 }
 
-int main(/*int argc, char **argv*/){
-    
+void test_lock_type(LL_lock_type_name name){
+    lock_type.value = name;
+
     printf("\n\n\n\033[32m ### STARTING LOCK TESTS! -- \033[m\n\n\n");
 
     T(test_create(), "test_create()");
 
     T(test_lock(), "test_lock()");
+
+    T(test_is_locked(), "test_is_locked()");
+
+    T(test_is_locked(), "test_is_locked()");
 
     T(test_mutual_exclusion(0.0), "test_mutual_exclusion LL_delegate = 0%");
 
@@ -138,9 +163,31 @@ int main(/*int argc, char **argv*/){
 
     T(test_mutual_exclusion(1.0), "test_mutual_exclusion LL_delegate = 100%");
 
-    printf("\n\n\n\033[32m ### LOCK TESTS COMPLETED! -- \033[m\n\n\n");
+    printf("\n\n\n\033[32m ### LOCK TESTS COMPLETED! -- \033[m\n\n\n");    
 
+}
+
+
+int main(int argc, char **argv){
+#ifndef LOCK_TYPE_NAME
+    if(argc > 1){
+        if(strcmp("TATAS_LOCK", argv[1]) == 0){
+            test_lock_type(TATAS_LOCK);
+        }else if(strcmp("QD_LOCK", argv[1]) == 0){
+            test_lock_type(QD_LOCK);
+        }else{
+            printf("No lock with the name %s.\n", argv[1]);
+        }
+    }else{
+        printf("Give a lock type as parameter:\n");
+        printf("\tTATAS_LOCK\n");
+        printf("\tQD_LOCK\n");
+    }
+#else
+    UNUSED(argc);
+    UNUSED(argv);
+    test_lock_type(LOCK_TYPE_NAME);
+#endif
     return 0;
-
 }
 

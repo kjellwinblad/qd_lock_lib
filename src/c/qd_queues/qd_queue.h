@@ -15,13 +15,12 @@
 
 typedef struct QDQueueRequestIDImpl {
     volatile atomic_uint messageSize;
-    /* void (*requestIdentifier)(unsigned int messageSize, void * message) */
-    volatile atomic_intptr_t requestIdentifier;
+    void (*requestIdentifier)(unsigned int messageSize, void * message);
 } QDRequestRequestId;
 
 typedef struct QDQueueImpl {
-    CacheLinePaddedULong counter;
-    CacheLinePaddedBool closed;
+    LLPaddedULong counter;
+    LLPaddedBool closed;
     char buffer[QD_QUEUE_BUFFER_SIZE];
 } QDQueue;
 
@@ -49,10 +48,11 @@ void qdq_open(QDQueue* q) {
 bool qdq_enqueue(QDQueue* q,
              void (*funPtr)(unsigned int, void *), 
              unsigned int messageSize,
-             char * messageAddress) {
+             void * messageAddress) {
     if(atomic_load_explicit( &q->closed.value, memory_order_acquire )){
         return false;
     }
+    char * messageBuffer = (char *) messageAddress;
     unsigned int storeSize = sizeof(QDRequestRequestId) + messageSize;
     unsigned int pad = sizeof(unsigned int) - (storeSize & (sizeof(unsigned int) - 1));
     unsigned long bufferOffset = atomic_fetch_add(&q->counter.value,
@@ -62,14 +62,12 @@ bool qdq_enqueue(QDQueue* q,
     QDRequestRequestId * reqId = 
         (QDRequestRequestId*)&q->buffer[bufferOffset];
     if(nextReqOffset <= QD_QUEUE_BUFFER_SIZE) {
-        atomic_store_explicit( &reqId->requestIdentifier,
-                               (intptr_t)funPtr, 
-                               memory_order_relaxed );
+        reqId->requestIdentifier = funPtr;
         unsigned long messageBodyStart = bufferOffset + sizeof(QDRequestRequestId);
         for(unsigned long i = messageBodyStart; 
             i < writeToOffset;
             i++){
-            q->buffer[i] = messageAddress[i - messageBodyStart];
+            q->buffer[i] = messageBuffer[i - messageBodyStart];
         }
         atomic_store_explicit( &reqId->messageSize,
                                messageSize, 
@@ -100,7 +98,7 @@ void qdq_flush(QDQueue* q) {
             open = false;
             atomic_store_explicit( &q->closed.value,
                                    true, 
-                                   memory_order_release );
+                                   memory_order_relaxed );
         }
         if(todo >= QD_QUEUE_BUFFER_SIZE) { /* queue closed */
             todo = QD_QUEUE_BUFFER_SIZE;
@@ -123,9 +121,7 @@ void qdq_flush(QDQueue* q) {
             if(messageSize == (QD_QUEUE_BUFFER_SIZE + 1)){
                 return; /* Too big, we can return */
             }
-            void (*funPtr)(unsigned int, void *);
-            funPtr = ((void (*)(unsigned int, void *))atomic_load( &reqId->requestIdentifier));
-
+            void (*funPtr)(unsigned int, void *) = reqId->requestIdentifier;
             unsigned int storeSize = sizeof(QDRequestRequestId) + messageSize;
             unsigned int messageEndOffset = index + storeSize;
             unsigned int pad = sizeof(unsigned int) - (storeSize & (sizeof(unsigned int) - 1));

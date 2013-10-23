@@ -63,9 +63,15 @@ env = Environment(
 #Build
 ######
 
+env.Program(source='src/c/tests/test_lock.c',
+            target='test_lock',
+            CPPDEFINES=[('LOCK_TYPE', 'OOLock')])
+
+
+#Plain locks
 #type, type name
-all_locks = [('TATASLock', 'TATAS_LOCK'),
-             ('QDLock', 'QD_LOCK')]
+all_locks = [('TATASLock', 'PLAIN_TATAS_LOCK'),
+             ('QDLock', 'PLAIN_QD_LOCK')]
 
 
 for (lock_type, lock_type_name) in all_locks:
@@ -75,6 +81,8 @@ for (lock_type, lock_type_name) in all_locks:
                                     ('LOCK_TYPE_NAME', lock_type_name)])
     env.Program(source=object,
                 target='test_' + lock_type_name)
+
+#Queue
 
 env.Program(source='src/c/tests/test_qd_queue.c',
             target='test_qd_queue')
