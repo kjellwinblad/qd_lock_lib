@@ -63,26 +63,33 @@ env = Environment(
 #Build
 ######
 
+#Tests
+######
+
 env.Program(source='src/c/tests/test_lock.c',
             target='test_lock',
             CPPDEFINES=[('LOCK_TYPE', 'OOLock')])
 
-
-#Plain locks
-#type, type name
-all_locks = [('TATASLock', 'PLAIN_TATAS_LOCK'),
-             ('QDLock', 'PLAIN_QD_LOCK')]
-
-
-for (lock_type, lock_type_name) in all_locks:
-    object = env.Object(source='src/c/tests/test_lock.c',
-                        target='objects/test_' + lock_type_name + '.o',
-                        CPPDEFINES=[('LOCK_TYPE', lock_type),
-                                    ('LOCK_TYPE_NAME', lock_type_name)])
-    env.Program(source=object,
-                target='test_' + lock_type_name)
-
-#Queue
-
 env.Program(source='src/c/tests/test_qd_queue.c',
             target='test_qd_queue')
+
+if use_gcc:
+    #Plain locks
+    #type, type name
+    all_locks = [('TATASLock', 'PLAIN_TATAS_LOCK'),
+                 ('QDLock', 'PLAIN_QD_LOCK')]
+    
+    for (lock_type, lock_type_name) in all_locks:
+        object = env.Object(source='src/c/tests/test_lock.c',
+                            target='objects/test_' + lock_type_name + '.o',
+                            CPPDEFINES=[('LOCK_TYPE', lock_type),
+                                        ('LOCK_TYPE_NAME', lock_type_name)])
+        env.Program(source=object,
+                    target='test_' + lock_type_name)
+
+
+#Examples
+#########
+
+env.Program(source='src/c/examples/qd_lock_delegate_example.c',
+            target='qd_lock_delegate_example')

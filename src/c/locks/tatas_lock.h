@@ -71,4 +71,18 @@ OOLockMethodTable TATAS_LOCK_METHOD_TABLE =
      .delegate = &tatas_delegate
 };
 
+TATASLock * plain_tatas_create(){
+    TATASLock * l = aligned_alloc(CACHE_LINE_SIZE, sizeof(TATASLock));
+    tatas_initialize(l);
+    return l;
+}
+
+OOLock * oo_tatas_create(){
+    TATASLock * l = plain_tatas_create();
+    OOLock * ool = aligned_alloc(CACHE_LINE_SIZE, sizeof(OOLock));
+    ool->lock = l;
+    ool->m = &TATAS_LOCK_METHOD_TABLE;
+    return ool;
+}
+
 #endif

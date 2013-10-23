@@ -21,7 +21,7 @@ typedef struct QDQueueRequestIDImpl {
 typedef struct QDQueueImpl {
     LLPaddedULong counter;
     LLPaddedBool closed;
-    char buffer[QD_QUEUE_BUFFER_SIZE];
+    unsigned char buffer[QD_QUEUE_BUFFER_SIZE];
 } QDQueue;
 
 void qdq_initialize(QDQueue * q){

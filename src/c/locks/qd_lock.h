@@ -74,5 +74,18 @@ OOLockMethodTable QD_LOCK_METHOD_TABLE =
      .delegate = &qd_delegate
 };
 
+QDLock * plain_qd_create(){
+    QDLock * l = aligned_alloc(CACHE_LINE_SIZE, sizeof(QDLock));
+    qd_initialize(l);
+    return l;
+}
+
+OOLock * oo_qd_create(){
+    QDLock * l = plain_qd_create();
+    OOLock * ool = aligned_alloc(CACHE_LINE_SIZE, sizeof(OOLock));
+    ool->lock = l;
+    ool->m = &QD_LOCK_METHOD_TABLE;
+    return ool;
+}
 
 #endif

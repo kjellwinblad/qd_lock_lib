@@ -1,0 +1,4 @@
+{
+  "glob": ["src/c/**/*.h", "src/c/**/*.c", "README.md"],
+  "github": false
+}
