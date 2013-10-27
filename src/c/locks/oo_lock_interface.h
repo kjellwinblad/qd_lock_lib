@@ -10,11 +10,13 @@ typedef struct {
     void (*unlock)(void*);
     bool (*is_locked)(void*);
     bool (*try_lock)(void*);
+    void (*rlock)(void*);
+    void (*runlock)(void*);
     void (*delegate)(void*,
                      void (*funPtr)(unsigned int, void *),
                      unsigned int messageSize,
                      void * messageAddress);
-    char pad[CACHE_LINE_SIZE -  (6 * sizeof(void*)) % CACHE_LINE_SIZE];
+    char pad[CACHE_LINE_SIZE -  (8 * sizeof(void*)) % CACHE_LINE_SIZE];
 } OOLockMethodTable;
 
 typedef struct {

@@ -75,13 +75,13 @@ LOCK_TYPE * lock;
 LLPaddedULong counter = {.value = ATOMIC_VAR_INIT(0)};
 LLPaddedBool stop = {.value = ATOMIC_FLAG_INIT};
 LLPaddedDouble delegatePercentage;
+LLPaddedDouble readPercentage;
 
 void critical_section_code(unsigned long * localCounterPtr){
     unsigned long oldCounterValue = atomic_load(&counter.value);
     atomic_fetch_add(&counter.value, 1);
     *localCounterPtr = *localCounterPtr + 1;
     atomic_thread_fence(memory_order_seq_cst); 
-    thread_yield();
     assert((oldCounterValue + 1) == atomic_load(&counter.value));
 }
 
@@ -95,19 +95,34 @@ void  * critical_section_thread(void * threadLocalDataVPtr){
     ThreadLocalData * threadLocalDataPtr = (ThreadLocalData*)threadLocalDataVPtr;
     unsigned long * localInCSCounter = threadLocalDataPtr->localInCSCounter;
     unsigned int * localSeed = threadLocalDataPtr->localSeed;
+    unsigned long expectedLocalInCSCounterReadValue = 0;
+    double delegatePercentageV = delegatePercentage.value;
+    double delegatePlusReadPercentage = delegatePercentageV + readPercentage.value;
     while(!atomic_load_explicit(&stop.value, memory_order_acquire)){
-        if(random_double(localSeed) > delegatePercentage.value){
+        double randomNumber = random_double(localSeed);
+        if(randomNumber > delegatePlusReadPercentage){
             LL_lock(lock);
             critical_section_code(localInCSCounter);
             LL_unlock(lock);
-        } else {
+            expectedLocalInCSCounterReadValue++;
+        } else if(randomNumber > delegatePercentageV){
+            LL_rlock(lock);
+            assert(expectedLocalInCSCounterReadValue == *localInCSCounter);
+            unsigned long before = atomic_load(&counter.value);
+            atomic_thread_fence(memory_order_seq_cst);
+            assert(before == atomic_load(&counter.value));
+            LL_runlock(lock);        
+        }else {
             LL_delegate(lock, delegate_function, sizeof(unsigned long *), &localInCSCounter);
+            expectedLocalInCSCounterReadValue++;
         } 
     }
     return NULL;
 }
-int test_mutual_exclusion(double delegatePercentageParm){
+int test_mutual_exclusion(double delegatePercentageParm,
+                          double readPercentageParm){
     delegatePercentage.value = delegatePercentageParm;
+    readPercentage.value = readPercentageParm;
     lock = LL_create(lock_type.value);
     struct timespec testTime= {.tv_sec = 0, .tv_nsec = 100000000}; 
     for(int i = 1; i < 10; i++){
@@ -157,11 +172,17 @@ void test_lock_type(LL_lock_type_name name){
 
     T(test_is_locked(), "test_is_locked()");
 
-    T(test_mutual_exclusion(0.0), "test_mutual_exclusion LL_delegate = 0%");
+    T(test_mutual_exclusion(0.0, 0.0), "test_mutual_exclusion LL_lock = 100%");
 
-    T(test_mutual_exclusion(0.5), "test_mutual_exclusion LL_delegate = 50%");
+    T(test_mutual_exclusion(0.5, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_lock = 50%");
 
-    T(test_mutual_exclusion(1.0), "test_mutual_exclusion LL_delegate = 100%");
+    T(test_mutual_exclusion(1.0, 0.0), "test_mutual_exclusion LL_delegate = 100%");
+
+    T(test_mutual_exclusion(0.0, 1.0), "test_mutual_exclusion LL_rlock = 100%");
+
+    T(test_mutual_exclusion(0.5, 0.5), "test_mutual_exclusion LL_delegate = 50% LL_rlock = 50%");
+
+    T(test_mutual_exclusion(0.33, 0.34), "test_mutual_exclusion LL_delegate = 33% LL_lock = 33% LL_rlock = 34%");
 
     printf("\n\n\n\033[32m ### LOCK TESTS COMPLETED! -- \033[m\n\n\n");    
 
@@ -175,6 +196,8 @@ int main(int argc, char **argv){
             test_lock_type(TATAS_LOCK);
         }else if(strcmp("QD_LOCK", argv[1]) == 0){
             test_lock_type(QD_LOCK);
+        }else if(strcmp("MRQD_LOCK", argv[1]) == 0){
+            test_lock_type(MRQD_LOCK);
         }else{
             printf("No lock with the name %s.\n", argv[1]);
         }
@@ -182,6 +205,7 @@ int main(int argc, char **argv){
         printf("Give a lock type as parameter:\n");
         printf("\tTATAS_LOCK\n");
         printf("\tQD_LOCK\n");
+        printf("\tMRQD_LOCK\n");
     }
 #else
     UNUSED(argc);

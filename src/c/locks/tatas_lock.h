@@ -68,6 +68,8 @@ OOLockMethodTable TATAS_LOCK_METHOD_TABLE =
      .unlock = &tatas_unlock,
      .is_locked = &tatas_is_locked,
      .try_lock = &tatas_try_lock,
+     .rlock = &tatas_lock,
+     .runlock = &tatas_unlock,
      .delegate = &tatas_delegate
 };
 

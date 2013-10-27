@@ -73,11 +73,12 @@ env.Program(source='src/c/tests/test_lock.c',
 env.Program(source='src/c/tests/test_qd_queue.c',
             target='test_qd_queue')
 
-if use_gcc:
+if not use_gcc:
     #Plain locks
     #type, type name
     all_locks = [('TATASLock', 'PLAIN_TATAS_LOCK'),
-                 ('QDLock', 'PLAIN_QD_LOCK')]
+                 ('QDLock', 'PLAIN_QD_LOCK'),
+                 ('MRQDLock', 'PLAIN_MRQD_LOCK')]
     
     for (lock_type, lock_type_name) in all_locks:
         object = env.Object(source='src/c/tests/test_lock.c',

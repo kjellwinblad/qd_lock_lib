@@ -71,6 +71,8 @@ OOLockMethodTable QD_LOCK_METHOD_TABLE =
      .unlock = &qd_unlock,
      .is_locked = &qd_is_locked,
      .try_lock = &qd_try_lock,
+     .rlock = &qd_lock,
+     .runlock = &qd_unlock,
      .delegate = &qd_delegate
 };
 
