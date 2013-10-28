@@ -11,4 +11,8 @@ static inline void thread_yield(){
     sched_yield();
 }
 
+#ifndef __clang__
+#    define _Thread_local __thread
+#endif
+
 #endif

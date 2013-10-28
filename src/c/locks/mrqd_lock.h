@@ -19,21 +19,33 @@ typedef struct {
     LLPaddedUInt readerGroups[MRQD_LOCK_NUMBER_OF_READER_GROUPS];
 } ReaderGroupsReadIndicator;
 
+volatile atomic_int rgri_get_thread_id_counter = ATOMIC_VAR_INIT(0);
+typedef union {
+    int value;
+    char pad[CACHE_LINE_SIZE];
+} RGRIGetThreadIDVarWrapper;
+_Alignas(CACHE_LINE_SIZE)
+_Thread_local RGRIGetThreadIDVarWrapper rgri_get_thread_id_var = {.value = -1};
+
 static inline
-unsigned int rgri_get_thread_id(){
+int rgri_get_thread_id(){
     //Warning this is not guranteed to work well on all platforms
-    pthread_t pthread_id = pthread_self();
-    return (pthread_id / 11) % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
+    if(rgri_get_thread_id_var.value > -1) {
+        return rgri_get_thread_id_var.value;
+    } else {
+        rgri_get_thread_id_var.value = atomic_fetch_add(&rgri_get_thread_id_counter, 1);
+        return rgri_get_thread_id_var.value;
+    }
 }
 
 void rgri_arrive(ReaderGroupsReadIndicator * indicator){
-    unsigned int thread_id = rgri_get_thread_id();
-    atomic_fetch_add_explicit(&indicator->readerGroups[thread_id].value, 1, memory_order_seq_cst);
+    int index = rgri_get_thread_id() % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
+    atomic_fetch_add_explicit(&indicator->readerGroups[index].value, 1, memory_order_seq_cst);
 }
 
 void rgri_depart(ReaderGroupsReadIndicator * indicator){
-    unsigned int thread_id = rgri_get_thread_id();
-    atomic_fetch_sub_explicit(&indicator->readerGroups[thread_id].value, 1, memory_order_seq_cst);
+    int index = rgri_get_thread_id() % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
+    atomic_fetch_sub_explicit(&indicator->readerGroups[index].value, 1, memory_order_seq_cst);
 }
 
 void rgri_wait_all_readers_gone(ReaderGroupsReadIndicator * indicator){
@@ -60,10 +72,10 @@ typedef struct {
 void mrqd_initialize(MRQDLock * lock){
     tatas_initialize(&lock->mutexLock);
     qdq_initialize(&lock->queue);
+    atomic_store(&lock->writeBarrier.value, 0);
     for(int i = 0; i < MRQD_LOCK_NUMBER_OF_READER_GROUPS; i++){
-        lock->readIndicator->readerGroups[i].value = ATOMIC_VAR_INIT(0);
+        atomic_store(&lock->readIndicator.readerGroups[i].value, 0);
     }
-    lock->writeBarrier.value = ATOMIC_VAR_INIT(0);
 }
 
 void mrqd_lock(void * lock) {

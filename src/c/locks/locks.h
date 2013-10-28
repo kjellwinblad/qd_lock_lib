@@ -199,7 +199,7 @@ void * LL_create(LL_lock_type_name llLockType){
     OOLock * : ((OOLock *)X)->m->rlock(((OOLock *)X)->lock) \
                                 )
 #else
-#define LL_rlock(X) ((OOLock *)X)->m->lock(((OOLock *)X)->lock)
+#define LL_rlock(X) ((OOLock *)X)->m->rlock(((OOLock *)X)->lock)
 #endif                  
 
 // ## LL_runlock
@@ -212,7 +212,7 @@ void * LL_create(LL_lock_type_name llLockType){
     OOLock * : ((OOLock *)X)->m->runlock(((OOLock *)X)->lock)      \
     )
 #else
-#define LL_runlock(X) ((OOLock *)X)->m->unlock(((OOLock *)X)->lock)
+#define LL_runlock(X) ((OOLock *)X)->m->runlock(((OOLock *)X)->lock)
 #endif
 
 
