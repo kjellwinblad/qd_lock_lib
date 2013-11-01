@@ -40,17 +40,18 @@ int rgri_get_thread_id(){
 
 void rgri_arrive(ReaderGroupsReadIndicator * indicator){
     int index = rgri_get_thread_id() % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
-    atomic_fetch_add_explicit(&indicator->readerGroups[index].value, 1, memory_order_seq_cst);
+    atomic_fetch_add_explicit(&indicator->readerGroups[index].value, 1, memory_order_release);
 }
 
 void rgri_depart(ReaderGroupsReadIndicator * indicator){
     int index = rgri_get_thread_id() % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
-    atomic_fetch_sub_explicit(&indicator->readerGroups[index].value, 1, memory_order_seq_cst);
+    atomic_fetch_sub_explicit(&indicator->readerGroups[index].value, 1, memory_order_release);
 }
 
 void rgri_wait_all_readers_gone(ReaderGroupsReadIndicator * indicator){
     for(int i = 0; i < MRQD_LOCK_NUMBER_OF_READER_GROUPS; i++){
-        while(0 < atomic_load_explicit(&indicator->readerGroups[i].value, memory_order_seq_cst)){
+        atomic_thread_fence(memory_order_seq_cst);
+        while(0 < atomic_load_explicit(&indicator->readerGroups[i].value, memory_order_relaxed)){
             thread_yield();
         }
     }
