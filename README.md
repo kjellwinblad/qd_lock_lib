@@ -1,7 +1,7 @@
 qd\_lock\_lib
 ===========
 
-qd\_lock\_lib is mutual exclusion lock library that target queue
+qd\_lock\_lib is mutual exclusion lock library that targets queue
 delegation locking in particular. Currently, qd\_lock\_lib contains a
 C implementation (C11) of queue delegation locking but more lock
 implementations and programming languages are planned.

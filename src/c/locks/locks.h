@@ -16,7 +16,7 @@
 
 // To include this file:
 
-//     #include "locks/tatas_lock.h"
+//     #include "locks/locks.h"
 
 #include "locks/tatas_lock.h"
 #include "locks/qd_lock.h"
@@ -69,7 +69,7 @@
 // * `TATAS_LOCK` gives the return type `OOLock *`
 // * `QD_LOCK` gives the return type `OOLock *`
 // * `PLAIN_TATAS_LOCK` gives the return type `TATASLock *`
-// * `PLAIN_TATAS_LOCK` gives the return type `QDLock *`
+// * `PLAIN_QD_LOCK` gives the return type `QDLock *`
 typedef enum {
     TATAS_LOCK,
     QD_LOCK,
