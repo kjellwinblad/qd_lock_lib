@@ -16,6 +16,11 @@ typedef struct {
                      void (*funPtr)(unsigned int, void *),
                      unsigned int messageSize,
                      void * messageAddress);
+    void * (*delegate_or_lock)(void* lock,
+                               unsigned int messageSize);
+    void (*close_delegate_buffer)(void * buffer,
+                                  void (*funPtr)(unsigned int, void *));
+    void (*delegate_unlock)(void* lock);
     char pad[CACHE_LINE_SIZE -  (8 * sizeof(void*)) % CACHE_LINE_SIZE];
 } OOLockMethodTable;
 

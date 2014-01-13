@@ -76,6 +76,7 @@ LLPaddedULong counter = {.value = ATOMIC_VAR_INIT(0)};
 LLPaddedBool stop = {.value = ATOMIC_FLAG_INIT};
 LLPaddedDouble delegatePercentage;
 LLPaddedDouble readPercentage;
+LLPaddedDouble delegateOrLockPercentage;
 
 void critical_section_code(unsigned long * localCounterPtr){
     unsigned long oldCounterValue = atomic_load(&counter.value);
@@ -98,12 +99,23 @@ void  * critical_section_thread(void * threadLocalDataVPtr){
     unsigned long expectedLocalInCSCounterReadValue = 0;
     double delegatePercentageV = delegatePercentage.value;
     double delegatePlusReadPercentage = delegatePercentageV + readPercentage.value;
+    double delegatePlusReadPlusDelegateOrLockPercentage = delegatePlusReadPercentage + delegateOrLockPercentage.value;
     while(!atomic_load_explicit(&stop.value, memory_order_acquire)){
         double randomNumber = random_double(localSeed);
-        if(randomNumber > delegatePlusReadPercentage){
+        if(randomNumber > delegatePlusReadPlusDelegateOrLockPercentage){
             LL_lock(lock);
             critical_section_code(localInCSCounter);
             LL_unlock(lock);
+            expectedLocalInCSCounterReadValue++;
+        }else if(randomNumber > delegatePlusReadPercentage){
+            void * buffer = LL_delegate_or_lock(lock, sizeof(sizeof(unsigned long *)));
+            if(buffer == NULL){
+                critical_section_code(localInCSCounter);
+                LL_delegate_unlock(lock);
+            }else{
+                *((unsigned long **)buffer) = localInCSCounter;
+                LL_close_delegate_buffer(lock, buffer, delegate_function);
+            }
             expectedLocalInCSCounterReadValue++;
         } else if(randomNumber > delegatePercentageV){
             LL_rlock(lock);
@@ -120,9 +132,11 @@ void  * critical_section_thread(void * threadLocalDataVPtr){
     return NULL;
 }
 int test_mutual_exclusion(double delegatePercentageParm,
-                          double readPercentageParm){
+                          double readPercentageParm,
+                          double delegateOrLockPercentageParm){
     delegatePercentage.value = delegatePercentageParm;
     readPercentage.value = readPercentageParm;
+    delegateOrLockPercentage.value = delegateOrLockPercentageParm;
     lock = LL_create(lock_type.value);
     struct timespec testTime= {.tv_sec = 0, .tv_nsec = 100000000}; 
     for(int i = 1; i < 10; i++){
@@ -172,17 +186,21 @@ void test_lock_type(LL_lock_type_name name){
 
     T(test_is_locked(), "test_is_locked()");
 
-    T(test_mutual_exclusion(0.0, 0.0), "test_mutual_exclusion LL_lock = 100%");
+    T(test_mutual_exclusion(0.0, 0.0, 0.0), "test_mutual_exclusion LL_lock = 100%");
 
-    T(test_mutual_exclusion(0.5, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_lock = 50%");
+    T(test_mutual_exclusion(0.5, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_lock = 50%");
 
-    T(test_mutual_exclusion(1.0, 0.0), "test_mutual_exclusion LL_delegate = 100%");
+    T(test_mutual_exclusion(1.0, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 100%");
 
-    T(test_mutual_exclusion(0.0, 1.0), "test_mutual_exclusion LL_rlock = 100%");
+    T(test_mutual_exclusion(0.0, 1.0, 0.0), "test_mutual_exclusion LL_rlock = 100%");
 
-    T(test_mutual_exclusion(0.5, 0.5), "test_mutual_exclusion LL_delegate = 50% LL_rlock = 50%");
+    T(test_mutual_exclusion(0.5, 0.5, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_rlock = 50%");
 
-    T(test_mutual_exclusion(0.33, 0.34), "test_mutual_exclusion LL_delegate = 33% LL_lock = 33% LL_rlock = 34%");
+    T(test_mutual_exclusion(0.33, 0.34, 0.0), "test_mutual_exclusion LL_delegate = 33% LL_lock = 33% LL_rlock = 34%");
+
+    T(test_mutual_exclusion(0.0, 0.0, 1.0), "LL_lock_or_delegate = 100%");
+
+    T(test_mutual_exclusion(0.0, 0.5, 0.5), "LL_rlock = 50% LL_lock_or_delegate = 50%");
 
     printf("\n\n\n\033[32m ### LOCK TESTS COMPLETED! -- \033[m\n\n\n");    
 

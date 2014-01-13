@@ -271,4 +271,38 @@ void * LL_create(LL_lock_type_name llLockType){
 #define LL_delegate(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
 #endif
 
+#ifdef __clang__
+#define LL_delegate_or_lock(X, messageSize) _Generic((X),             \
+    TATASLock *: tatas_delegate_or_lock((TATASLock *)X, messageSize), \
+    QDLock * : qd_delegate_or_lock((QDLock *)X, messageSize), \
+    MRQDLock * : mrqd_delegate_or_lock((MRQDLock *)X, messageSize), \
+    OOLock * : ((OOLock *)X)->m->delegate_or_lock(((OOLock *)X)->lock, messageSize) \
+    )
+#else
+#define LL_delegate_or_lock(X, messageSize) ((OOLock *)X)->m->delegate_or_lock(((OOLock *)X)->lock, messageSize)
+#endif
+
+#ifdef __clang__
+#define LL_close_delegate_buffer(X, buffer, funPtr) _Generic((X),        \
+    TATASLock *: printf("Can not be called\n"), \
+    QDLock * : qd_close_delegate_buffer(buffer, funPtr), \
+    MRQDLock * : mrqd_close_delegate_buffer(buffer, funPtr), \
+    OOLock * : ((OOLock *)X)->m->close_delegate_buffer(buffer, funPtr) \
+    )
+#else
+#define LL_close_delegate_buffer(X, buffer, funPtr) ((OOLock *)X)->m->close_delegate_buffer(buffer, funPtr)
+#endif
+
+
+#ifdef __clang__
+#define LL_delegate_unlock(X) _Generic((X),         \
+    TATASLock *: tatas_unlock((TATASLock *)X),                \
+    QDLock * : qd_delegate_unlock(((QDLock *)X)), \
+    MRQDLock * : mrqd_delegate_unlock((MRQDLock *)X),       \
+    OOLock * : ((OOLock *)X)->m->delegate_unlock(((OOLock *)X)->lock) \
+                                )
+#else
+#define LL_delegate_unlock(X) ((OOLock *)X)->m->delegate_unlock(((OOLock *)X)->lock)
+#endif
+
 #endif

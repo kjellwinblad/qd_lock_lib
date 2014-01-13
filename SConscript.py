@@ -66,6 +66,9 @@ env = Environment(
 #Tests
 ######
 
+# env.Program(source='src/c/tests/test_set.c',
+#             target='test_set')
+
 env.Program(source='src/c/tests/test_lock.c',
             target='test_lock',
             CPPDEFINES=[('LOCK_TYPE', 'OOLock')])
@@ -87,6 +90,20 @@ if not use_gcc:
                                         ('LOCK_TYPE_NAME', lock_type_name)])
         env.Program(source=object,
                     target='test_' + lock_type_name)
+    #Plain Sets
+    #type, type name
+    all_sets = [('ChainedHashSet', 'PLAIN_CHAINED_HASH_SET'),
+                ('SortedListSet', 'PLAIN_SORTED_LIST_SET'),
+                ('ConcSplitchSet', 'PLAIN_CONC_SPLITCH_SET')
+                ]
+    
+    for (set_type, set_type_name) in all_sets:
+        object = env.Object(source='src/c/tests/test_set.c',
+                            target='objects/test_' + set_type_name + '.o',
+                            CPPDEFINES=[('SET_TYPE', set_type),
+                                        ('SET_TYPE_NAME', set_type_name)])
+        env.Program(source=object,
+                    target='test_' + set_type_name)
 
 
 #Examples

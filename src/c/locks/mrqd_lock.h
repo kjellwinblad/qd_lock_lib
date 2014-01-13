@@ -12,8 +12,10 @@
 /* Read Indicator */
 
 #ifndef MRQD_LOCK_NUMBER_OF_READER_GROUPS
-#    define MRQD_LOCK_NUMBER_OF_READER_GROUPS 4
+#    define MRQD_LOCK_NUMBER_OF_READER_GROUPS 64
 #endif
+
+#define MRQD_LOCK_READER_GROUP_PER_THREAD 1
 
 typedef struct {
     LLPaddedUInt readerGroups[MRQD_LOCK_NUMBER_OF_READER_GROUPS];
@@ -40,12 +42,20 @@ int rgri_get_thread_id(){
 
 void rgri_arrive(ReaderGroupsReadIndicator * indicator){
     int index = rgri_get_thread_id() % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
+#ifdef MRQD_LOCK_READER_GROUP_PER_THREAD
+    atomic_store_explicit(&indicator->readerGroups[index].value, 1, memory_order_release);
+#else
     atomic_fetch_add_explicit(&indicator->readerGroups[index].value, 1, memory_order_release);
+#endif
 }
 
 void rgri_depart(ReaderGroupsReadIndicator * indicator){
     int index = rgri_get_thread_id() % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
+#ifdef MRQD_LOCK_READER_GROUP_PER_THREAD
+    atomic_store_explicit(&indicator->readerGroups[index].value, 0, memory_order_release);
+#else
     atomic_fetch_sub_explicit(&indicator->readerGroups[index].value, 1, memory_order_release);
+#endif
 }
 
 void rgri_wait_all_readers_gone(ReaderGroupsReadIndicator * indicator){
@@ -165,6 +175,37 @@ void mrqd_delegate(void* lock,
     }
 }
 
+void * mrqd_delegate_or_lock(void* lock,
+                             unsigned int messageSize) {
+    MRQDLock *l = (MRQDLock*)lock;
+    void * buffer;
+    while(atomic_load_explicit(&l->writeBarrier.value, memory_order_seq_cst) > 0){
+        thread_yield();
+    }
+    while(true) {
+        if(tatas_try_lock(&l->mutexLock)) {
+            qdq_open(&l->queue);
+            rgri_wait_all_readers_gone(&l->readIndicator);
+            return NULL;
+        } else if(NULL != (buffer = qdq_enqueue_get_buffer(&l->queue,
+                                                           messageSize))){
+            return buffer;
+        }
+        thread_yield();
+    }
+}
+
+void mrqd_close_delegate_buffer(void * buffer,
+                                void (*funPtr)(unsigned int, void *)){
+    qdq_enqueue_close_buffer(buffer, funPtr);
+}
+
+void mrqd_delegate_unlock(void* lock) {
+    MRQDLock *l = (MRQDLock*)lock;
+    qdq_flush(&l->queue);
+    tatas_unlock(&l->mutexLock);
+}
+
 _Alignas(CACHE_LINE_SIZE)
 OOLockMethodTable MRQD_LOCK_METHOD_TABLE = 
 {
@@ -175,7 +216,10 @@ OOLockMethodTable MRQD_LOCK_METHOD_TABLE =
     .try_lock = &mrqd_try_lock,
     .rlock = &mrqd_rlock,
     .runlock = &mrqd_runlock,
-    .delegate = &mrqd_delegate
+    .delegate = &mrqd_delegate,
+    .delegate_or_lock = &mrqd_delegate_or_lock,
+    .close_delegate_buffer = &mrqd_close_delegate_buffer,
+    .delegate_unlock = &mrqd_delegate_unlock
 };
 
 MRQDLock * plain_mrqd_create(){

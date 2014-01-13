@@ -63,6 +63,33 @@ void qd_delegate(void* lock,
     }
 }
 
+void * qd_delegate_or_lock(void* lock,
+                           unsigned int messageSize) {
+    QDLock *l = (QDLock*)lock;
+    void * buffer;
+    while(true) {
+        if(tatas_try_lock(&l->mutexLock)) {
+            qdq_open(&l->queue);
+            return NULL;
+        } else if(NULL != (buffer = qdq_enqueue_get_buffer(&l->queue,
+                                                           messageSize))){
+            return buffer;
+        }
+        thread_yield();
+    }
+}
+
+void qd_close_delegate_buffer(void * buffer,
+                              void (*funPtr)(unsigned int, void *)){
+    qdq_enqueue_close_buffer(buffer, funPtr);
+}
+
+void qd_delegate_unlock(void* lock) {
+    QDLock *l = (QDLock*)lock;
+    qdq_flush(&l->queue);
+    tatas_unlock(&l->mutexLock);
+}
+
 _Alignas(CACHE_LINE_SIZE)
 OOLockMethodTable QD_LOCK_METHOD_TABLE = 
 {
@@ -73,7 +100,10 @@ OOLockMethodTable QD_LOCK_METHOD_TABLE =
      .try_lock = &qd_try_lock,
      .rlock = &qd_lock,
      .runlock = &qd_unlock,
-     .delegate = &qd_delegate
+     .delegate = &qd_delegate,
+     .delegate_or_lock = &qd_delegate_or_lock,
+     .close_delegate_buffer = &qd_close_delegate_buffer,
+     .delegate_unlock = &qd_delegate_unlock
 };
 
 QDLock * plain_qd_create(){

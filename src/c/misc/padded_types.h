@@ -5,6 +5,8 @@
 
 #define CACHE_LINE_SIZE 64
 
+#define CACHE_LINE_SIZE_PAD(size) CACHE_LINE_SIZE - (size) % CACHE_LINE_SIZE
+
 #ifndef _ISOC11_SOURCE
 #    if _POSIX_C_SOURCE >= 200112
 #        include <malloc.h>
