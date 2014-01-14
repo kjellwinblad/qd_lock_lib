@@ -111,3 +111,6 @@ if not use_gcc:
 
 env.Program(source='src/c/examples/qd_lock_delegate_example.c',
             target='qd_lock_delegate_example')
+
+env.Program(source='src/c/examples/shared_int_example.c',
+            target='shared_int_example')

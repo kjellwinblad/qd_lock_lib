@@ -41,7 +41,7 @@
 #define LL_initialize(X) _Generic((X),      \
      TATASLock * : tatas_initialize((TATASLock *)X), \
      QDLock * : qd_initialize((QDLock *)X), \
-     MRQDLock * : qd_initialize((MRQDLock *)X) \
+     MRQDLock * : mrqd_initialize((MRQDLock *)X) \
                                 )
 #else
 #define LL_initialize(X) LL_error_and_exit("Function not supported on GCC\n")
