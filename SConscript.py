@@ -81,7 +81,8 @@ if not use_gcc:
     #type, type name
     all_locks = [('TATASLock', 'PLAIN_TATAS_LOCK'),
                  ('QDLock', 'PLAIN_QD_LOCK'),
-                 ('MRQDLock', 'PLAIN_MRQD_LOCK')]
+                 ('MRQDLock', 'PLAIN_MRQD_LOCK'),
+                 ('CCSynchLock', 'PLAIN_CCSYNCH_LOCK')]
     
     for (lock_type, lock_type_name) in all_locks:
         object = env.Object(source='src/c/tests/test_lock.c',

@@ -138,7 +138,7 @@ int test_mutual_exclusion(double delegatePercentageParm,
     readPercentage.value = readPercentageParm;
     delegateOrLockPercentage.value = delegateOrLockPercentageParm;
     lock = LL_create(lock_type.value);
-    struct timespec testTime= {.tv_sec = 0, .tv_nsec = 100000000}; 
+    struct timespec testTime= {.tv_sec = 5, .tv_nsec = 100000000}; 
     for(int i = 1; i < 10; i++){
         atomic_store(&counter.value, 0);
         atomic_store(&stop.value, false);
@@ -214,6 +214,8 @@ int main(int argc, char **argv){
             test_lock_type(TATAS_LOCK);
         }else if(strcmp("QD_LOCK", argv[1]) == 0){
             test_lock_type(QD_LOCK);
+        }else if(strcmp("CCSYNCH_LOCK", argv[1]) == 0){
+            test_lock_type(CCSYNCH_LOCK);
         }else if(strcmp("MRQD_LOCK", argv[1]) == 0){
             test_lock_type(MRQD_LOCK);
         }else{
@@ -224,6 +226,7 @@ int main(int argc, char **argv){
         printf("\tTATAS_LOCK\n");
         printf("\tQD_LOCK\n");
         printf("\tMRQD_LOCK\n");
+        printf("\tCCSYNCH_LOCK\n");
     }
 #else
     UNUSED(argc);
