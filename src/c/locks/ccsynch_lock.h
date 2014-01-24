@@ -190,6 +190,7 @@ OOLockMethodTable CCSYNCH_LOCK_METHOD_TABLE =
      .rlock = &ccsynch_lock,
      .runlock = &ccsynch_unlock,
      .delegate = &ccsynch_delegate,
+     .delegate_wait = &ccsynch_delegate,
      .delegate_or_lock = &ccsynch_delegate_or_lock,
      .close_delegate_buffer = &ccsynch_close_delegate_buffer,
      .delegate_unlock = &ccsynch_delegate_unlock

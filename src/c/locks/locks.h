@@ -287,6 +287,18 @@ void * LL_create(LL_lock_type_name llLockType){
 #endif
 
 #ifdef __clang__
+#define LL_delegate_wait(X, funPtr, messageSize, messageAddress) _Generic((X),      \
+    TATASLock *: tatas_delegate((TATASLock *)X, funPtr, messageSize, messageAddress), \
+    QDLock * : qd_delegate_wait((QDLock *)X, funPtr, messageSize, messageAddress), \
+    CCSynchLock * : ccsynch_delegate(X, funPtr, messageSize, messageAddress), \
+    MRQDLock * : mrqd_delegate_wait((MRQDLock *)X, funPtr, messageSize, messageAddress), \
+    OOLock * : ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress) \
+    )
+#else
+#define LL_delegate(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
+#endif
+
+#ifdef __clang__
 #define LL_delegate_or_lock(X, messageSize) _Generic((X),             \
     TATASLock *: tatas_delegate_or_lock((TATASLock *)X, messageSize), \
     QDLock * : qd_delegate_or_lock((QDLock *)X, messageSize), \

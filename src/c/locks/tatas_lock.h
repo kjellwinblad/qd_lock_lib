@@ -78,6 +78,7 @@ OOLockMethodTable TATAS_LOCK_METHOD_TABLE =
      .rlock = &tatas_lock,
      .runlock = &tatas_unlock,
      .delegate = &tatas_delegate,
+     .delegate_wait = &tatas_delegate,
      .delegate_or_lock = &tatas_delegate_or_lock,
      .close_delegate_buffer = NULL, /* Should never be called */
      .delegate_unlock = &tatas_unlock

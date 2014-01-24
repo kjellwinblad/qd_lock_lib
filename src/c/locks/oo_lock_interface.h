@@ -16,6 +16,10 @@ typedef struct {
                      void (*funPtr)(unsigned int, void *),
                      unsigned int messageSize,
                      void * messageAddress);
+    void (*delegate_wait)(void*,
+                          void (*funPtr)(unsigned int, void *),
+                          unsigned int messageSize,
+                          void * messageAddress);
     void * (*delegate_or_lock)(void* lock,
                                unsigned int messageSize);
     void (*close_delegate_buffer)(void * buffer,

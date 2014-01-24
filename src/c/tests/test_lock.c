@@ -77,6 +77,7 @@ LLPaddedBool stop = {.value = ATOMIC_FLAG_INIT};
 LLPaddedDouble delegatePercentage;
 LLPaddedDouble readPercentage;
 LLPaddedDouble delegateOrLockPercentage;
+LLPaddedDouble delegateWaitPercentage;
 
 void critical_section_code(unsigned long * localCounterPtr){
     unsigned long oldCounterValue = atomic_load(&counter.value);
@@ -100,12 +101,16 @@ void  * critical_section_thread(void * threadLocalDataVPtr){
     double delegatePercentageV = delegatePercentage.value;
     double delegatePlusReadPercentage = delegatePercentageV + readPercentage.value;
     double delegatePlusReadPlusDelegateOrLockPercentage = delegatePlusReadPercentage + delegateOrLockPercentage.value;
+    double delegatePlusReadPlusDelegateOrLockPlusDelegateWaitPercentage = delegatePlusReadPercentage + delegateOrLockPercentage.value + delegateWaitPercentage.value;
     while(!atomic_load_explicit(&stop.value, memory_order_acquire)){
         double randomNumber = random_double(localSeed);
-        if(randomNumber > delegatePlusReadPlusDelegateOrLockPercentage){
+        if(randomNumber > delegatePlusReadPlusDelegateOrLockPlusDelegateWaitPercentage){
             LL_lock(lock);
             critical_section_code(localInCSCounter);
             LL_unlock(lock);
+            expectedLocalInCSCounterReadValue++;
+        }if(randomNumber > delegatePlusReadPlusDelegateOrLockPercentage){
+            LL_delegate_wait(lock, delegate_function, sizeof(unsigned long *), &localInCSCounter);
             expectedLocalInCSCounterReadValue++;
         }else if(randomNumber > delegatePlusReadPercentage){
             void * buffer = LL_delegate_or_lock(lock, sizeof(sizeof(unsigned long *)));
@@ -133,12 +138,14 @@ void  * critical_section_thread(void * threadLocalDataVPtr){
 }
 int test_mutual_exclusion(double delegatePercentageParm,
                           double readPercentageParm,
-                          double delegateOrLockPercentageParm){
+                          double delegateOrLockPercentageParm,
+                          double delegateWaitPercentageParm){
     delegatePercentage.value = delegatePercentageParm;
     readPercentage.value = readPercentageParm;
     delegateOrLockPercentage.value = delegateOrLockPercentageParm;
+    delegateWaitPercentage.value = delegateWaitPercentageParm;
     lock = LL_create(lock_type.value);
-    struct timespec testTime= {.tv_sec = 5, .tv_nsec = 100000000}; 
+    struct timespec testTime= {.tv_sec = 0, .tv_nsec = 100000000}; 
     for(int i = 1; i < 10; i++){
         atomic_store(&counter.value, 0);
         atomic_store(&stop.value, false);
@@ -179,28 +186,19 @@ void test_lock_type(LL_lock_type_name name){
     printf("\n\n\n\033[32m ### STARTING LOCK TESTS! -- \033[m\n\n\n");
 
     T(test_create(), "test_create()");
-
     T(test_lock(), "test_lock()");
-
     T(test_is_locked(), "test_is_locked()");
-
     T(test_is_locked(), "test_is_locked()");
-
-    T(test_mutual_exclusion(0.0, 0.0, 0.0), "test_mutual_exclusion LL_lock = 100%");
-
-    T(test_mutual_exclusion(0.5, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_lock = 50%");
-
-    T(test_mutual_exclusion(1.0, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 100%");
-
-    T(test_mutual_exclusion(0.0, 1.0, 0.0), "test_mutual_exclusion LL_rlock = 100%");
-
-    T(test_mutual_exclusion(0.5, 0.5, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_rlock = 50%");
-
-    T(test_mutual_exclusion(0.33, 0.34, 0.0), "test_mutual_exclusion LL_delegate = 33% LL_lock = 33% LL_rlock = 34%");
-
-    T(test_mutual_exclusion(0.0, 0.0, 1.0), "LL_lock_or_delegate = 100%");
-
-    T(test_mutual_exclusion(0.0, 0.5, 0.5), "LL_rlock = 50% LL_lock_or_delegate = 50%");
+    T(test_mutual_exclusion(0.0, 0.0, 0.0, 0.0), "test_mutual_exclusion LL_lock = 100%");
+    T(test_mutual_exclusion(0.5, 0.0, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_lock = 50%");
+    T(test_mutual_exclusion(1.0, 0.0, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 100%");
+    T(test_mutual_exclusion(0.0, 1.0, 0.0, 0.0), "test_mutual_exclusion LL_rlock = 100%");
+    T(test_mutual_exclusion(0.5, 0.5, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 50% LL_rlock = 50%");
+    T(test_mutual_exclusion(0.33, 0.34, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 33% LL_lock = 33% LL_rlock = 34%");
+    T(test_mutual_exclusion(0.0, 0.0, 1.0, 0.0), "LL_lock_or_delegate = 100%");
+    T(test_mutual_exclusion(0.0, 0.5, 0.5, 0.0), "LL_rlock = 50% LL_lock_or_delegate = 50%");
+    T(test_mutual_exclusion(0.0, 0.0, 0.0, 1.0), "LL_delegate_wait = 100%");
+    T(test_mutual_exclusion(0.2, 0.2, 0.2, 0.2), "20% All ops");
 
     printf("\n\n\n\033[32m ### LOCK TESTS COMPLETED! -- \033[m\n\n\n");    
 

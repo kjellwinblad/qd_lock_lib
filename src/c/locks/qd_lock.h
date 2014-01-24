@@ -90,6 +90,52 @@ void qd_delegate_unlock(void* lock) {
     tatas_unlock(&l->mutexLock);
 }
 
+
+
+
+void qd_executeAndWaitCS(unsigned int size, void * data){
+    char * buff = data;
+    volatile atomic_int * writeBackAddress = *((volatile atomic_int **)buff);
+    void (*csFunc)(unsigned int, void *) = 
+        *((void (**)(unsigned int, void *))&(buff[sizeof(volatile atomic_int *)]));
+    unsigned int metaDataSize = sizeof(volatile atomic_int *) + 
+        sizeof(void (*)(unsigned int, void *));
+    void * csData = (void*)&(buff[metaDataSize]);
+    csFunc(size - metaDataSize, csData);
+    atomic_store_explicit(writeBackAddress, 0, memory_order_release);
+}
+
+void qd_delegate_wait(void* lock,
+                      void (*funPtr)(unsigned int, void *), 
+                      unsigned int messageSize,
+                      void * messageAddress) {
+    volatile atomic_int waitVar = ATOMIC_VAR_INIT(1);
+    unsigned int metaDataSize = sizeof(volatile atomic_int *) + 
+        sizeof(void (*)(unsigned int, void *));
+    char * buff = qd_delegate_or_lock(lock,
+                                      metaDataSize + messageSize);
+    if(buff==NULL){
+        funPtr(messageSize, messageAddress);
+        qd_delegate_unlock(lock);
+    }else{
+        volatile atomic_int ** waitVarPtrAddress = (volatile atomic_int **)buff;
+        *waitVarPtrAddress = &waitVar;
+        void (**funPtrAdress)(unsigned int, void *) = (void (**)(unsigned int, void *))&buff[sizeof(volatile atomic_int *)];
+        *funPtrAdress = funPtr;
+        unsigned int metaDataSize = sizeof(volatile atomic_int *) + 
+            sizeof(void (*)(unsigned int, void *));
+        char * msgBuffer = (char *)messageAddress;
+        for(unsigned int i = metaDataSize; i < (messageSize + metaDataSize); i++){
+            buff[i] = msgBuffer[i - metaDataSize];
+        }
+        qd_close_delegate_buffer((void *)buff, qd_executeAndWaitCS);
+        while(atomic_load_explicit(&waitVar, memory_order_acquire)){
+            thread_yield();
+        }
+    }
+}
+
+
 _Alignas(CACHE_LINE_SIZE)
 OOLockMethodTable QD_LOCK_METHOD_TABLE = 
 {
@@ -101,6 +147,7 @@ OOLockMethodTable QD_LOCK_METHOD_TABLE =
      .rlock = &qd_lock,
      .runlock = &qd_unlock,
      .delegate = &qd_delegate,
+     .delegate_wait = &qd_delegate_wait,
      .delegate_or_lock = &qd_delegate_or_lock,
      .close_delegate_buffer = &qd_close_delegate_buffer,
      .delegate_unlock = &qd_delegate_unlock
