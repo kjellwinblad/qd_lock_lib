@@ -29,6 +29,7 @@ typedef struct {
     volatile atomic_uintptr_t tailPtr;
 } CCSynchLock;
 
+_Alignas(CACHE_LINE_SIZE)
 __thread CCSynchLockNode * ccsynchNextLocalNode = NULL;
 
 static inline void ccsynchlock_initNode(CCSynchLockNode * node){
