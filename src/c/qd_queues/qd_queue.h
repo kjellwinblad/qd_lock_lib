@@ -32,7 +32,10 @@ typedef struct QDQueueImpl {
 
 void qdq_initialize(QDQueue * q){
     for(int i = 0; i < QD_QUEUE_BUFFER_SIZE; i = i + sizeof(atomic_uintptr_t)){
-        *((atomic_uintptr_t *)(&q->buffer[i])) = QD_QUEUE_EMPTY_POS;
+        volatile atomic_uintptr_t * ptr = (void*)&q->buffer[i];
+        atomic_store_explicit(ptr,
+                              QD_QUEUE_EMPTY_POS,
+                              memory_order_relaxed);
     }
     atomic_store_explicit( &q->counter.value,
                            QD_QUEUE_BUFFER_SIZE, 
@@ -176,7 +179,10 @@ void qdq_flush(QDQueue* q) {
             void * messageAddress = q->buffer + sizeof(QDRequestRequestId) + index;
             funPtr(messageSize, messageAddress);           
             for(unsigned int i = index; i < messageEndOffset; i = i + sizeof(uintptr_t)){
-                *((atomic_uintptr_t *)(&q->buffer[i])) = QD_QUEUE_EMPTY_POS;
+                volatile atomic_uintptr_t * ptr = (void*)&q->buffer[i];
+                atomic_store_explicit(ptr,
+                                      QD_QUEUE_EMPTY_POS,
+                                      memory_order_relaxed);
             }
             index = nextReqOffset;
         }

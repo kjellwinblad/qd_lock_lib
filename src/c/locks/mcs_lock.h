@@ -8,7 +8,6 @@
 #include "misc/thread_includes.h"//Until c11 thread.h is available
 #include <stdbool.h>
 
-//TODO ADD PADDING
 typedef struct {
     LLPaddedPointer next;
     LLPaddedInt locked;
@@ -27,7 +26,8 @@ __thread MCSNode myMCSNode = {
 };
 
 void mcs_initialize(MCSLock * lock){
-    lock->endOfQueue.value = ATOMIC_VAR_INIT((intptr_t)NULL);
+    volatile atomic_intptr_t tmp = ATOMIC_VAR_INIT((intptr_t)NULL); 
+    lock->endOfQueue.value = tmp;
 }
 
 void mcs_lock(void * lock) {
@@ -61,7 +61,8 @@ void mcs_unlock(void * lock) {
             thread_yield();
         }
     }
-    atomic_store_explicit(&((MCSNode*)nodeConst->next.value)->locked.value, 0, memory_order_release);
+    MCSNode * nextNode = (MCSNode*)atomic_load_explicit(&nodeConst->next.value, memory_order_relaxed);
+    atomic_store_explicit(&nextNode->locked.value, 0, memory_order_release);
 }
 
 bool mcs_is_locked(void * lock){

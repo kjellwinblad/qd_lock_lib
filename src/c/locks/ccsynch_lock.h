@@ -33,11 +33,12 @@ _Alignas(CACHE_LINE_SIZE)
 __thread CCSynchLockNode * ccsynchNextLocalNode = NULL;
 
 static inline void ccsynchlock_initNode(CCSynchLockNode * node){
-    node->requestFunction = ATOMIC_VAR_INIT(NULL);
+    node->requestFunction = NULL;
     node->messageSize = CCSYNCH_BUFFER_SIZE + 1;
     atomic_store_explicit(&node->wait, 0, memory_order_relaxed);
     node->completed = false;
-    node->next = ATOMIC_VAR_INIT((uintptr_t)NULL);
+    volatile atomic_uintptr_t tmp = ATOMIC_VAR_INIT((uintptr_t)NULL);
+    node->next = tmp;
 }
 
 static inline void ccsynchlock_initLocalIfNeeded(){
@@ -61,7 +62,7 @@ void ccsynch_lock(void * lock) {
     ccsynchlock_initLocalIfNeeded();
     nextNode = ccsynchNextLocalNode;
     atomic_store_explicit(&nextNode->next, (uintptr_t)NULL, memory_order_relaxed);
-    nextNode->wait = true;
+    atomic_store_explicit(&nextNode->wait, 1, memory_order_relaxed);
     nextNode->completed = false;
     curNode = (CCSynchLockNode *)atomic_exchange_explicit( &l->tailPtr, (uintptr_t)nextNode, memory_order_release);
     curNode->requestFunction = NULL;
@@ -125,7 +126,7 @@ void ccsynch_delegate(void* lock,
     ccsynchlock_initLocalIfNeeded();
     nextNode = ccsynchNextLocalNode;
     atomic_store_explicit(&nextNode->next, (uintptr_t)NULL, memory_order_relaxed);
-    nextNode->wait = true;
+    atomic_store_explicit(&nextNode->wait, 1, memory_order_relaxed);
     nextNode->completed = false;
     curNode = (CCSynchLockNode *)atomic_exchange_explicit(&l->tailPtr, (uintptr_t)nextNode, memory_order_release);
     if(messageSize < CCSYNCH_BUFFER_SIZE){

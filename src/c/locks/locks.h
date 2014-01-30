@@ -311,7 +311,7 @@ void * LL_create(LL_lock_type_name llLockType){
     OOLock * : ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress) \
     )
 #else
-#define LL_delegate(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
+#define LL_delegate_wait(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
 #endif
 
 #ifdef __clang__
