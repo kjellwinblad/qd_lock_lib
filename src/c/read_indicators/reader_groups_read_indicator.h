@@ -21,6 +21,12 @@ typedef union {
 _Alignas(CACHE_LINE_SIZE)
 _Thread_local RGRIGetThreadIDVarWrapper rgri_get_thread_id_var = {.value = -1};
 
+void reader_groups_initialize(ReaderGroupsReadIndicator * readIndicator){
+    for(int i = 0; i < MRQD_LOCK_NUMBER_OF_READER_GROUPS; i++){
+        atomic_store(&readIndicator->readerGroups[i].value, 0);
+    }
+}
+
 static inline
 int rgri_get_thread_id(){
     //Warning this is not guranteed to work well on all platforms

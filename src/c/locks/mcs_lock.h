@@ -30,7 +30,7 @@ void mcs_initialize(MCSLock * lock){
     lock->endOfQueue.value = tmp;
 }
 
-void mcs_lock(void * lock) {
+bool mcs_lock_status(void * lock) {
     MCSLock * l = lock;
     MCSNode * node = &myMCSNode;
     atomic_store_explicit(&node->next.value, (intptr_t)NULL, memory_order_relaxed);
@@ -42,8 +42,14 @@ void mcs_lock(void * lock) {
         while (atomic_load_explicit(&node->locked.value, memory_order_acquire)) {
             thread_yield();
         }
-        return;
+        return true;
+    }else{
+        return false;
     }
+}
+
+void mcs_lock(void * lock) {
+    mcs_lock_status(lock);
 }
 
 void mcs_unlock(void * lock) {

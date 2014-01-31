@@ -216,6 +216,10 @@ int main(int argc, char **argv){
             test_lock_type(CCSYNCH_LOCK);
         }else if(strcmp("MRQD_LOCK", argv[1]) == 0){
             test_lock_type(MRQD_LOCK);
+        }else if(strcmp("MCS_LOCK", argv[1]) == 0){
+            test_lock_type(MCS_LOCK);
+        }else if(strcmp("DRMCS_LOCK", argv[1]) == 0){
+            test_lock_type(DRMCS_LOCK);
         }else{
             printf("No lock with the name %s.\n", argv[1]);
         }
@@ -225,6 +229,8 @@ int main(int argc, char **argv){
         printf("\tQD_LOCK\n");
         printf("\tMRQD_LOCK\n");
         printf("\tCCSYNCH_LOCK\n");
+        printf("\tMCS_LOCK\n");
+        printf("\tDRMCS_LOCK\n");
     }
 #else
     UNUSED(argc);

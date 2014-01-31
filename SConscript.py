@@ -83,7 +83,8 @@ if not use_gcc:
                  ('QDLock', 'PLAIN_QD_LOCK'),
                  ('MRQDLock', 'PLAIN_MRQD_LOCK'),
                  ('CCSynchLock', 'PLAIN_CCSYNCH_LOCK'),
-                 ('MCSLock', 'PLAIN_MCS_LOCK')]
+                 ('MCSLock', 'PLAIN_MCS_LOCK'),
+                 ('DRMCSLock', 'PLAIN_DRMCS_LOCK')]
     
     for (lock_type, lock_type_name) in all_locks:
         object = env.Object(source='src/c/tests/test_lock.c',

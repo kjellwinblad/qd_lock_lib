@@ -27,9 +27,7 @@ void mrqd_initialize(MRQDLock * lock){
     tatas_initialize(&lock->mutexLock);
     qdq_initialize(&lock->queue);
     atomic_store(&lock->writeBarrier.value, 0);
-    for(int i = 0; i < MRQD_LOCK_NUMBER_OF_READER_GROUPS; i++){
-        atomic_store(&lock->readIndicator.readerGroups[i].value, 0);
-    }
+    reader_groups_initialize(&lock->readIndicator);
 }
 
 void mrqd_lock(void * lock) {

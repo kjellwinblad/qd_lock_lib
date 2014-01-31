@@ -19,6 +19,7 @@
 //     #include "locks/locks.h"
 
 #include "locks/mcs_lock.h"
+#include "locks/drmcs_lock.h"
 #include "locks/tatas_lock.h"
 #include "locks/qd_lock.h"
 #include "locks/mrqd_lock.h"
@@ -75,12 +76,14 @@
 // * `PLAIN_TATAS_LOCK` gives the return type `TATASLock *`
 // * `PLAIN_QD_LOCK` gives the return type `QDLock *`
 typedef enum {
+    DRMCS_LOCK,
     MCS_LOCK,
     TATAS_LOCK,
     QD_LOCK,
     CCSYNCH_LOCK,
     MRQD_LOCK,
     PLAIN_MCS_LOCK, 
+    PLAIN_DRMCS_LOCK, 
     PLAIN_TATAS_LOCK, 
     PLAIN_QD_LOCK,
     PLAIN_CCSYNCH_LOCK,
@@ -100,6 +103,8 @@ void * LL_create(LL_lock_type_name llLockType){
         return oo_mrqd_create();
     }else if (MCS_LOCK == llLockType){
         return oo_mcs_create();
+    }else if (DRMCS_LOCK == llLockType){
+        return oo_drmcs_create();
     }
 #ifdef __clang__
     else if(PLAIN_TATAS_LOCK == llLockType){
@@ -112,6 +117,8 @@ void * LL_create(LL_lock_type_name llLockType){
         return plain_mrqd_create();
     }else if (PLAIN_MCS_LOCK == llLockType){
         return plain_mcs_create();
+    }else if (PLAIN_DRMCS_LOCK == llLockType){
+        return plain_drmcs_create();
     }
 #endif
     LL_error_and_exit("Lock type not supprted with GCC\n");
@@ -147,6 +154,7 @@ void * LL_create(LL_lock_type_name llLockType){
     CCSynchLock * : ccsynch_lock(X),       \
     MRQDLock * : mrqd_lock((MRQDLock *)X),       \
     MCSLock * : mcs_lock((MCSLock *)X),       \
+    DRMCSLock * : drmcs_lock((DRMCSLock *)X),       \
     OOLock * : ((OOLock *)X)->m->lock(((OOLock *)X)->lock) \
                                 )
 #else
@@ -172,6 +180,7 @@ void * LL_create(LL_lock_type_name llLockType){
     CCSynchLock * : ccsynch_unlock(X), \
     MRQDLock * : tatas_unlock(&((MRQDLock *)X)->mutexLock), \
     MCSLock * : mcs_unlock(X), \
+    DRMCSLock * : drmcs_unlock(X), \
     OOLock * : ((OOLock *)X)->m->unlock(((OOLock *)X)->lock)      \
     )
 #else
@@ -188,6 +197,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : tatas_is_locked(&((QDLock *)X)->mutexLock), \
     CCSynchLock * : ccsynch_is_locked(X), \
     MCSLock * : mcs_is_locked(X), \
+    DRMCSLock * : drmcs_is_locked(X), \
     MRQDLock * : tatas_is_locked(&((MRQDLock *)X)->mutexLock), \
     OOLock * : ((OOLock *)X)->m->is_locked(((OOLock *)X)->lock)      \
     )
@@ -207,6 +217,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : tatas_try_lock(&((QDLock *)X)->mutexLock), \
     CCSynchLock * : ccsynch_try_lock(X), \
     MCSLock * : mcs_try_lock(X), \
+    DRMCSLock * : drmcs_try_lock(X), \
     OOLock * : ((OOLock *)X)->m->try_lock(((OOLock *)X)->lock)      \
     )
 #else
@@ -221,6 +232,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : tatas_lock(&((QDLock *)X)->mutexLock),       \
     CCSynchLock * : ccsynch_lock(X),       \
     MCSLock * : mcs_lock(X),       \
+    DRMCSLock * : drmcs_lock(X),       \
     MRQDLock * : mrqd_rlock((MRQDLock *)X),       \
     OOLock * : ((OOLock *)X)->m->rlock(((OOLock *)X)->lock) \
                                 )
@@ -236,6 +248,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : tatas_unlock(&((QDLock *)X)->mutexLock), \
     CCSynchLock * : ccsynch_unlock(X), \
     MCSLock * : mcs_unlock(X), \
+    DRMCSLock * : drmcs_unlock(X), \
     MRQDLock * : mrqd_runlock((MRQDLock *)X), \
     OOLock * : ((OOLock *)X)->m->runlock(((OOLock *)X)->lock)      \
     )
@@ -294,6 +307,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : qd_delegate((QDLock *)X, funPtr, messageSize, messageAddress), \
     CCSynchLock * : ccsynch_delegate(X, funPtr, messageSize, messageAddress), \
     MCSLock * : mcs_delegate(X, funPtr, messageSize, messageAddress), \
+    DRMCSLock * : drmcs_delegate(X, funPtr, messageSize, messageAddress), \
     MRQDLock * : mrqd_delegate((MRQDLock *)X, funPtr, messageSize, messageAddress), \
     OOLock * : ((OOLock *)X)->m->delegate(((OOLock *)X)->lock, funPtr, messageSize, messageAddress) \
     )
@@ -307,6 +321,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : qd_delegate_wait((QDLock *)X, funPtr, messageSize, messageAddress), \
     CCSynchLock * : ccsynch_delegate(X, funPtr, messageSize, messageAddress), \
     MCSLock * : mcs_delegate(X, funPtr, messageSize, messageAddress), \
+    DRMCSLock * : drmcs_delegate(X, funPtr, messageSize, messageAddress), \
     MRQDLock * : mrqd_delegate_wait((MRQDLock *)X, funPtr, messageSize, messageAddress), \
     OOLock * : ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress) \
     )
@@ -320,6 +335,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : qd_delegate_or_lock((QDLock *)X, messageSize), \
     CCSynchLock * : ccsynch_delegate_or_lock(X, messageSize), \
     MCSLock * : mcs_delegate_or_lock(X, messageSize), \
+    DRMCSLock * : drmcs_delegate_or_lock(X, messageSize), \
     MRQDLock * : mrqd_delegate_or_lock((MRQDLock *)X, messageSize), \
     OOLock * : ((OOLock *)X)->m->delegate_or_lock(((OOLock *)X)->lock, messageSize) \
     )
@@ -333,6 +349,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : qd_close_delegate_buffer(buffer, funPtr), \
     CCSynchLock * : ccsynch_close_delegate_buffer(buffer, funPtr), \
     MCSLock * : printf("Can not be called\n"), \
+    DRMCSLock * : printf("Can not be called\n"), \
     MRQDLock * : mrqd_close_delegate_buffer(buffer, funPtr), \
     OOLock * : ((OOLock *)X)->m->close_delegate_buffer(buffer, funPtr) \
     )
@@ -347,6 +364,7 @@ void * LL_create(LL_lock_type_name llLockType){
     QDLock * : qd_delegate_unlock(((QDLock *)X)), \
     CCSynchLock * : ccsynch_delegate_unlock(((QDLock *)X)), \
     MCSLock * : mcs_unlock(((QDLock *)X)), \
+    DRMCSLock * : drmcs_unlock(((QDLock *)X)), \
     MRQDLock * : mrqd_delegate_unlock((MRQDLock *)X),       \
     OOLock * : ((OOLock *)X)->m->delegate_unlock(((OOLock *)X)->lock) \
                                 )
