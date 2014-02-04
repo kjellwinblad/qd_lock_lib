@@ -197,7 +197,7 @@ void test_lock_type(LL_lock_type_name name){
     T(test_mutual_exclusion(0.33, 0.34, 0.0, 0.0), "test_mutual_exclusion LL_delegate = 33% LL_lock = 33% LL_rlock = 34%");
     T(test_mutual_exclusion(0.0, 0.0, 1.0, 0.0), "LL_lock_or_delegate = 100%");
     T(test_mutual_exclusion(0.0, 0.5, 0.5, 0.0), "LL_rlock = 50% LL_lock_or_delegate = 50%");
-    T(test_mutual_exclusion(0.0, 0.0, 0.0, 1.0), "LL_delegate_wait = 100%");
+    T(test_mutual_exclusion(0.0, 0.0, 1.0, 0.0), "LL_delegate_wait = 100%");
     T(test_mutual_exclusion(0.2, 0.2, 0.2, 0.2), "20% All ops");
 
     printf("\n\n\n\033[32m ### LOCK TESTS COMPLETED! -- \033[m\n\n\n");    

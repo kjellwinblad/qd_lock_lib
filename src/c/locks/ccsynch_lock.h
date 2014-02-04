@@ -17,16 +17,22 @@
 #define CCSYNCH_HAND_OFF_LIMIT 512
 
 typedef struct {
+    volatile atomic_uintptr_t next;
     void (*requestFunction)(unsigned int, void *);
     unsigned int messageSize;
-    unsigned char buffer[CCSYNCH_BUFFER_SIZE];
-    volatile atomic_int wait;
+    unsigned char * buffer;
     bool completed;
-    volatile atomic_uintptr_t next;
+    volatile atomic_int wait;
+    char pad2[CACHE_LINE_SIZE_PAD(sizeof(void *)*2 + 
+                                  sizeof(unsigned int) +
+                                  CCSYNCH_BUFFER_SIZE +
+                                  sizeof(bool) +
+                                  sizeof(atomic_int))];
+    unsigned char tempBuffer[CACHE_LINE_SIZE*8]; //used in ccsynch_delegate_or_lock 
 } CCSynchLockNode;
 
 typedef struct {
-    volatile atomic_uintptr_t tailPtr;
+    LLPaddedPointer tailPtr;
 } CCSynchLock;
 
 _Alignas(CACHE_LINE_SIZE)
@@ -51,7 +57,7 @@ static inline void ccsynchlock_initLocalIfNeeded(){
 void ccsynch_initialize(CCSynchLock * l){
     CCSynchLockNode * dummyNode = aligned_alloc(CACHE_LINE_SIZE, sizeof(CCSynchLockNode));
     ccsynchlock_initNode(dummyNode);
-    atomic_store_explicit(&l->tailPtr, (uintptr_t)dummyNode, memory_order_release);
+    atomic_store_explicit(&l->tailPtr.value, (uintptr_t)dummyNode, memory_order_release);
 }
 
 
@@ -64,7 +70,7 @@ void ccsynch_lock(void * lock) {
     atomic_store_explicit(&nextNode->next, (uintptr_t)NULL, memory_order_relaxed);
     atomic_store_explicit(&nextNode->wait, 1, memory_order_relaxed);
     nextNode->completed = false;
-    curNode = (CCSynchLockNode *)atomic_exchange_explicit( &l->tailPtr, (uintptr_t)nextNode, memory_order_release);
+    curNode = (CCSynchLockNode *)atomic_exchange_explicit( &l->tailPtr.value, (uintptr_t)nextNode, memory_order_release);
     curNode->requestFunction = NULL;
     atomic_store_explicit(&curNode->next, (uintptr_t)nextNode, memory_order_release);
     ccsynchNextLocalNode = curNode;
@@ -97,7 +103,7 @@ void ccsynch_unlock(void * lock) {
 
 bool ccsynch_is_locked(void * lock){
     CCSynchLock *l = (CCSynchLock*)lock;
-    CCSynchLockNode * tail =  (CCSynchLockNode *)atomic_load_explicit(&l->tailPtr, memory_order_acquire);
+    CCSynchLockNode * tail =  (CCSynchLockNode *)atomic_load_explicit(&l->tailPtr.value, memory_order_acquire);
     return atomic_load_explicit(&tail->wait, memory_order_acquire) == 1;
 }
 
@@ -128,16 +134,10 @@ void ccsynch_delegate(void* lock,
     atomic_store_explicit(&nextNode->next, (uintptr_t)NULL, memory_order_relaxed);
     atomic_store_explicit(&nextNode->wait, 1, memory_order_relaxed);
     nextNode->completed = false;
-    curNode = (CCSynchLockNode *)atomic_exchange_explicit(&l->tailPtr, (uintptr_t)nextNode, memory_order_release);
-    if(messageSize < CCSYNCH_BUFFER_SIZE){
-        for(unsigned int i = 0; i < messageSize; i++){
-            curNode->buffer[i] = messageBuffer[i];
-        }
-        curNode->messageSize = messageSize;
-        curNode->requestFunction = funPtr;
-    }else{
-        curNode->requestFunction = NULL;
-    }
+    curNode = (CCSynchLockNode *)atomic_exchange_explicit(&l->tailPtr.value, (uintptr_t)nextNode, memory_order_release);
+    curNode->buffer = messageBuffer;
+    curNode->messageSize = messageSize;
+    curNode->requestFunction = funPtr;
     atomic_store_explicit(&curNode->next, (uintptr_t)nextNode, memory_order_release);
     ccsynchNextLocalNode = curNode;
     while (atomic_load_explicit(&curNode->wait, memory_order_acquire) == 1){
@@ -166,15 +166,64 @@ void ccsynch_delegate(void* lock,
 
 void * ccsynch_delegate_or_lock(void* lock,
                                 unsigned int messageSize) {
-    (void)messageSize;
-    ccsynch_lock(lock);//TODO do proper work here
-    return NULL;
+    CCSynchLock *l = (CCSynchLock*)lock;
+    CCSynchLockNode *nextNode;
+    CCSynchLockNode *curNode;
+    ccsynchlock_initLocalIfNeeded();
+    nextNode = ccsynchNextLocalNode;
+    atomic_store_explicit(&nextNode->next, (uintptr_t)NULL, memory_order_relaxed);
+    atomic_store_explicit(&nextNode->wait, 1, memory_order_relaxed);
+    nextNode->completed = false;
+    curNode = (CCSynchLockNode *)atomic_exchange_explicit(&l->tailPtr.value, (uintptr_t)nextNode, memory_order_release);
+    curNode->messageSize = messageSize;
+
+    curNode->requestFunction = NULL; //Forces helper to stop if it sees this
+
+    atomic_store_explicit(&curNode->next, (uintptr_t)nextNode, memory_order_release);
+
+    ccsynchNextLocalNode = curNode;
+    if (atomic_load_explicit(&curNode->wait, memory_order_acquire) == 1){
+        //Somone else has the lock delegate
+        return curNode->tempBuffer;
+    }else{
+        //Yey we got the lock
+        return NULL;
+    }
+
 }
 
 void ccsynch_close_delegate_buffer(void * buffer,
                                    void (*funPtr)(unsigned int, void *)){
-    (void)buffer;
-    (void)funPtr;
+    CCSynchLockNode *tmpNode;
+    void (*tmpFunPtr)(unsigned int, void *);
+    CCSynchLockNode *tmpNodeNext;
+    int counter = 0;
+    CCSynchLockNode *curNode = ccsynchNextLocalNode;
+    curNode->buffer = buffer;
+    curNode->requestFunction = funPtr;
+    atomic_thread_fence( memory_order_release );
+    while (atomic_load_explicit(&curNode->wait, memory_order_acquire) == 1){
+        thread_yield();
+    }
+    if(curNode->completed==true){
+        return;
+    }else{
+        funPtr(curNode->messageSize, buffer);
+    }
+    tmpNode = (CCSynchLockNode *)atomic_load_explicit(&curNode->next, memory_order_acquire);
+
+    while ((tmpNodeNext=(CCSynchLockNode *)atomic_load_explicit(&tmpNode->next, memory_order_acquire)) != NULL && counter < CCSYNCH_HAND_OFF_LIMIT) {
+        counter = counter + 1;
+        tmpFunPtr = tmpNode->requestFunction;
+        if(tmpFunPtr==NULL){
+            break;
+        }
+        tmpFunPtr(tmpNode->messageSize, tmpNode->buffer);
+        tmpNode->completed = true;
+        atomic_store_explicit(&tmpNode->wait, 0, memory_order_release);
+        tmpNode = tmpNodeNext;
+    }
+    atomic_store_explicit(&tmpNode->wait, 0, memory_order_release);
 }
 
 void ccsynch_delegate_unlock(void* lock) {
