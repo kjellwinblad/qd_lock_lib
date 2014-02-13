@@ -117,3 +117,6 @@ env.Program(source='src/c/examples/qd_lock_delegate_example.c',
 
 env.Program(source='src/c/examples/shared_int_example.c',
             target='shared_int_example')
+
+env.Program(source='src/c/examples/concurrent_queue_example.c',
+            target='concurrent_queue_example')

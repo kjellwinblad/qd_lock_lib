@@ -1,18 +1,30 @@
 qd\_lock\_lib
 ===========
 
-qd\_lock\_lib is mutual exclusion lock library that targets queue
-delegation locking in particular. Currently, qd\_lock\_lib contains a
-C implementation (C11) of queue delegation locking but more lock
-implementations and programming languages are planned.
+qd\_lock\_lib is a locking library for multi-threaded programs that
+targets queue delegation (QD) locking. QD locking is an efficient
+delegation locking technique that can perform much better than
+traditional locks but it requires a different interface. QD locking
+makes it possible to delegate critical sections to the current lock
+holder with the possibility to continue without waiting for its actual
+execution. The lock holding thread can execute many critical sections
+in sequence while it has the data protected by the critical section in
+its fast private cache. More information about QD locking can be found
+[here](http://www.it.uu.se/research/group/languages/software/qd_lock_lib). qd\_lock\_lib
+contains a C implementation (C11) of QD locking as well as a few other
+locks that can be used with the same generic API.
 
-## Goals
+## Features
 
 * easy to use
-* efficiency
-* work on many platforms 
+* efficient
+* works on many platforms 
 
 ## Compile and test
+
+qd\_lock\_lib uses the [Scons](http://www.scons.org/) build system so
+you have to install that first. On Debian based systems, you can run
+`sudo apt-get install scons`.
 
 ### clang
 
@@ -34,14 +46,44 @@ gcc:
 ### Run tests
 
     ./bin_test QD_LOCK
+    ./bin_test MRQD_LOCK
     ./bin_test TATAS_LOCK
+    ./bin_test MCS_LOCK
+    ./bin_test DRMCS_LOCK
+    ./bin_test CCSYNCH_LOCK
+
+If this fails it is likely that you will have to upgrade your
+compiler. clang has a bug in its atomics API so it is not safe to use
+an old version of clang even if it compiles.
 
 ## How to use
 
-Include the `qd_lock_lib/src/c` directory in your library path. You
-also need to set the flag `-std=gnu11` for both clang and gcc. The
-documentation in `qd_lock_lib/src/c/locks/locks.h` describes how to
-use the locks.
+The API is documented in the file `src/c/locks/locks.h`. You might
+also want to have a look at the examples:
 
-    clang -std=gnu11 -pthread -Ipath_to_qd_lock_lib/src/c my_program.c
+`src/c/examples/shared_int_example.c` - shows how to use the functions
+`LL_delegate`, `LL_delegate_wait`, `LL_lock`, `LL_unlock`, `LL_rlock`
+and `LL_runlock`.
+
+`src/c/examples/concurrent_queue_example.c` - shows how to use the
+functions `LL_delegate_or_lock`, `LL_delegate_unlock` and
+`LL_close_delegate_buffer`. It also shows how to implement a
+concurrent queue with QD locking.
+
+`src/c/examples/qd_lock_delegate_example.c` - starts up multiple
+threads that issues delegated critical sections.
+
+## How to compile with your program
+
+Include the `qd_lock_lib/src/c` directory in your library path. You
+also need to set the flag `-std=gnu11` for both clang and gcc.
+
+This is how you compile one of the example programs with clang:
+
+    clang -std=gnu11 -pthread  -Isrc/c src/c/examples/shared_int_example.c
+    
+Here is how you compile another example program with GCC:
+
+    gcc -std=gnu11 -pthread  -Isrc/c src/c/examples/concurrent_queue_example.c
+
 
