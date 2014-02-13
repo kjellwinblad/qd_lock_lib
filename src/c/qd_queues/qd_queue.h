@@ -12,7 +12,9 @@
 
 /* Queue Delegation Queue */
 
+#ifndef QD_QUEUE_BUFFER_SIZE
 #define QD_QUEUE_BUFFER_SIZE 4096
+#endif
 #define QD_QUEUE_EMPTY_POS 1
 #define QD_QUEUE_EMPTY_POS_FULL 2
 #define QDQ_CALCULATE_PAD(size) sizeof(atomic_intptr_t) ^ (sizeof(atomic_intptr_t) - (size & (sizeof(atomic_intptr_t) - 1)))
