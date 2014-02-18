@@ -31,8 +31,13 @@
 // 
 // `LL_initialize(X)` initializes a value of one of the lock types:
 
-// * `TATASLock`
-// * `QDLock`
+// * `TATASLock*`
+// * `QDLock*`
+// * `MRQDLock*`
+// * `CCSynch*`
+// * `TATASLock*`
+// * `MCSLock`
+// * `DRMCSLock`
 
 // The paramter `X` is a pointer to a value of one of the lock types.
 
@@ -73,8 +78,17 @@
 
 // * `TATAS_LOCK` gives the return type `OOLock *`
 // * `QD_LOCK` gives the return type `OOLock *`
+// * `MRQD_LOCK` gives the return type `OOLock *`
+// * `CCSYNCH_LOCK` gives the return type `OOLock *`
+// * `MCS_LOCK` gives the return type `OOLock *`
+// * `DRMCS_LOCK` gives the return type `OOLock *`
 // * `PLAIN_TATAS_LOCK` gives the return type `TATASLock *`
 // * `PLAIN_QD_LOCK` gives the return type `QDLock *`
+// * `PLAIN_MRQD_LOCK` gives the return type `MRQDLock *`
+// * `PLAIN_CCSYNCH_LOCK` gives the return type `CCSynchLock *`
+// * `PLAIN_MCS_LOCK` gives the return type `MCSLock *`
+// * `PLAIN_DRMCS_LOCK` gives the return type `DRMCSLock *`
+
 typedef enum {
     DRMCS_LOCK,
     MCS_LOCK,
@@ -315,6 +329,11 @@ void * LL_create(LL_lock_type_name llLockType){
 #define LL_delegate(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
 #endif
 
+// ## LL_delegate_wait
+
+// Works in the same way as LL_delegate but the function will not
+// return until the delegated critical section has exexuted
+
 #ifdef __clang__
 #define LL_delegate_wait(X, funPtr, messageSize, messageAddress) _Generic((X),      \
     TATASLock *: tatas_delegate((TATASLock *)X, funPtr, messageSize, messageAddress), \
@@ -328,6 +347,14 @@ void * LL_create(LL_lock_type_name llLockType){
 #else
 #define LL_delegate_wait(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
 #endif
+
+
+// ## LL_delegate_or_lock
+
+// See the tutorial located at
+// https://github.com/kjellwinblad/qd_lock_lib/wiki/Tutorial for
+// information about how to use the LL_delegate_or_lock family of
+// functions.
 
 #ifdef __clang__
 #define LL_delegate_or_lock(X, messageSize) _Generic((X),             \
