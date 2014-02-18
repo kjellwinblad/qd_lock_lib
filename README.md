@@ -12,13 +12,27 @@ in sequence while it has the data protected by the critical section in
 its fast private cache. More information about QD locking can be found
 [here](http://www.it.uu.se/research/group/languages/software/qd_lock_lib). qd\_lock\_lib
 contains a C implementation (C11) of QD locking as well as a few other
-locks that can be used with the same generic API.
+locks that can be used with the same generic API. The corresponding
+library for C++ can be found
+[here](http://github.com/davidklaftenegger/qd_library).
 
 ## Features
 
 * easy to use
 * efficient
 * works on many platforms 
+
+## Documentation
+
+The paper [Queue Delegation
+Locking](http://www.it.uu.se/research/group/languages/software/qd_lock_lib/paper.pdf)
+is a good place to start if you have not heard about delegation
+locking before or if you want to learn more.  [This
+tutorial](https://github.com/kjellwinblad/qd_lock_lib/wiki/Tutorial)
+is a good place to start if you want to use qd_lock_lib.  The full
+locking API together with documentation can be found in [this
+file](https://github.com/kjellwinblad/qd_lock_lib/blob/master/src/c/locks/locks.h).
+Compilation instructions can be found in this file
 
 ## Compile and test
 
@@ -58,8 +72,10 @@ an old version of clang even if it compiles.
 
 ## How to use
 
-The API is documented in the file `src/c/locks/locks.h`. You might
-also want to have a look at the examples:
+[This tutorial](http://github.com/kjellwinblad/qd_lock_lib/wiki/Tutorial)
+is a good place to start.  The API is documented in the file
+`src/c/locks/locks.h`. You might also want to have a look at the
+examples:
 
 `src/c/examples/shared_int_example.c` - shows how to use the functions
 `LL_delegate`, `LL_delegate_wait`, `LL_lock`, `LL_unlock`, `LL_rlock`
