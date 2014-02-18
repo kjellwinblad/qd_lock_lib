@@ -32,7 +32,7 @@ tutorial](https://github.com/kjellwinblad/qd_lock_lib/wiki/Tutorial)
 is a good place to start if you want to use qd_lock_lib.  The full
 locking API together with documentation can be found in [this
 file](https://github.com/kjellwinblad/qd_lock_lib/blob/master/src/c/locks/locks.h).
-Compilation instructions can be found in this file
+Compilation instructions can be found in this file.
 
 ## Compile and test
 
