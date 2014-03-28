@@ -17,7 +17,7 @@
 #endif
 #define QD_QUEUE_EMPTY_POS 1
 #define QD_QUEUE_EMPTY_POS_FULL 2
-#define QDQ_CALCULATE_PAD(size) sizeof(atomic_intptr_t) ^ (sizeof(atomic_intptr_t) - (size & (sizeof(atomic_intptr_t) - 1)))
+#define QDQ_CALCULATE_PAD(size) (sizeof(atomic_intptr_t) - 1) & (sizeof(atomic_intptr_t) - (size & (sizeof(atomic_intptr_t) - 1)))
 
 typedef struct QDQueueRequestIDImpl {
     volatile atomic_uintptr_t requestIdentifier;
