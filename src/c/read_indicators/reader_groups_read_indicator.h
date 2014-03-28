@@ -7,7 +7,8 @@
 #    define MRQD_LOCK_NUMBER_OF_READER_GROUPS 64
 #endif
 
-#define MRQD_LOCK_READER_GROUP_PER_THREAD 1
+//Warning this will not work when using more threads than reader groups
+// #define MRQD_LOCK_READER_GROUP_PER_THREAD 1
 
 typedef struct {
     LLPaddedUInt readerGroups[MRQD_LOCK_NUMBER_OF_READER_GROUPS];
@@ -29,7 +30,6 @@ void reader_groups_initialize(ReaderGroupsReadIndicator * readIndicator){
 
 static inline
 int rgri_get_thread_id(){
-    //Warning this is not guranteed to work well on all platforms
     if(rgri_get_thread_id_var.value > -1) {
         return rgri_get_thread_id_var.value;
     } else {
@@ -41,9 +41,9 @@ int rgri_get_thread_id(){
 void rgri_arrive(ReaderGroupsReadIndicator * indicator){
     int index = rgri_get_thread_id() % MRQD_LOCK_NUMBER_OF_READER_GROUPS;
 #ifdef MRQD_LOCK_READER_GROUP_PER_THREAD
-    atomic_store_explicit(&indicator->readerGroups[index].value, 1, memory_order_release);
+    atomic_store(&indicator->readerGroups[index].value, 1);
 #else
-    atomic_fetch_add_explicit(&indicator->readerGroups[index].value, 1, memory_order_release);
+    atomic_fetch_add(&indicator->readerGroups[index].value, 1);
 #endif
 }
 
@@ -57,9 +57,9 @@ void rgri_depart(ReaderGroupsReadIndicator * indicator){
 }
 
 void rgri_wait_all_readers_gone(ReaderGroupsReadIndicator * indicator){
+    atomic_thread_fence(memory_order_seq_cst);
     for(int i = 0; i < MRQD_LOCK_NUMBER_OF_READER_GROUPS; i++){
-        atomic_thread_fence(memory_order_seq_cst);
-        while(0 < atomic_load_explicit(&indicator->readerGroups[i].value, memory_order_relaxed)){
+        while(0 < atomic_load_explicit(&indicator->readerGroups[i].value, memory_order_acquire)){
             thread_yield();
         }
     }

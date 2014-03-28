@@ -38,13 +38,13 @@ void tatas_unlock(void * lock) {
 
 bool tatas_is_locked(void * lock){
     TATASLock *l = (TATASLock*)lock;
-    return atomic_load_explicit(&l->lockFlag.value, memory_order_acquire);
+    return atomic_load(&l->lockFlag.value);
 }
 
 bool tatas_try_lock(void * lock) {
     TATASLock *l = (TATASLock*)lock;
     if(!atomic_load_explicit(&l->lockFlag.value, memory_order_acquire)){
-        return !atomic_flag_test_and_set_explicit(&l->lockFlag.value, memory_order_acquire);
+        return !atomic_flag_test_and_set(&l->lockFlag.value);
     } else {
         return false;
     }

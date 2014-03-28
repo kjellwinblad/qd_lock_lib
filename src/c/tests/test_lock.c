@@ -145,8 +145,11 @@ int test_mutual_exclusion(double delegatePercentageParm,
     delegateOrLockPercentage.value = delegateOrLockPercentageParm;
     delegateWaitPercentage.value = delegateWaitPercentageParm;
     lock = LL_create(lock_type.value);
-    struct timespec testTime= {.tv_sec = 0, .tv_nsec = 100000000}; 
-    for(int i = 1; i < 10; i++){
+    struct timespec testTime= {.tv_sec = 1, .tv_nsec = 100000000}; 
+    int threadCountsToTest[] = {1,2,4,8,16};
+    int nrOfThreadCountsToTest = 5;
+    for(int n = 0; n < nrOfThreadCountsToTest; n++){
+        int i = threadCountsToTest[n];
         atomic_store(&counter.value, 0);
         atomic_store(&stop.value, false);
         pthread_t threads[i];

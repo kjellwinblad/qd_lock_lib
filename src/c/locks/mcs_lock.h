@@ -73,7 +73,7 @@ void mcs_unlock(void * lock) {
 
 bool mcs_is_locked(void * lock){
     MCSLock * l = lock;
-    return atomic_load_explicit(&l->endOfQueue.value, memory_order_acquire) != (intptr_t)NULL;
+    return atomic_load(&l->endOfQueue.value) != (intptr_t)NULL;
 }
 
 bool mcs_try_lock(void * lock) {
