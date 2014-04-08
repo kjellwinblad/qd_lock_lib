@@ -24,6 +24,11 @@ typedef struct {
     char * (*to_string)(void * v1);
 }SortedListSet;
 
+extern
+_Alignas(CACHE_LINE_SIZE)
+OOSetMethodTable SORTED_LIST_SET_METHOD_TABLE;
+
+static inline
 SortedListSet * plain_sl_set_create(unsigned int keyPosition,
                                     void * (*extract_key)(void * v, int keyPos),
                                     unsigned int (*hash_key)(void * k),
@@ -39,10 +44,12 @@ SortedListSet * plain_sl_set_create(unsigned int keyPosition,
     return set;
 }
 
-static inline int compare_hash_codes(unsigned int code1, unsigned int code2){
+static inline
+int compare_hash_codes(unsigned int code1, unsigned int code2){
     return code1 - code2;
 }
 
+static inline
 bool sl_set_insert_opt(SortedListSetNode ** root,
                        void * valuePtr,
                        unsigned int valueSize,
@@ -90,6 +97,7 @@ bool sl_set_insert_opt(SortedListSetNode ** root,
     return oneMore;
 }
 
+static inline
 void sl_set_insert(void * setParam, void * valuePtr, unsigned int valueSize){
     SortedListSet * set = (SortedListSet *)setParam;
     sl_set_insert_opt(&set->head,
@@ -102,6 +110,7 @@ void sl_set_insert(void * setParam, void * valuePtr, unsigned int valueSize){
                       set->are_equal);
 }
 
+static inline
 bool sl_set_insert_new(void * setParam, void * valuePtr, unsigned int valueSize){
     SortedListSet * set = (SortedListSet *)setParam;
     return sl_set_insert_opt(&set->head,
@@ -113,6 +122,7 @@ bool sl_set_insert_new(void * setParam, void * valuePtr, unsigned int valueSize)
                              set->are_equal);
 }
 
+static inline
 void * sl_set_lookup_opt(SortedListSetNode ** root, 
                          void * key,
                          unsigned int keyHashValue,
@@ -140,6 +150,7 @@ void * sl_set_lookup_opt(SortedListSetNode ** root,
     return NULL;
 }
 
+static inline
 void * sl_set_lookup(void * setParam, 
                      void * key){
     SortedListSet * set = (SortedListSet *)setParam;
@@ -151,6 +162,7 @@ void * sl_set_lookup(void * setParam,
                              set->are_equal);
 }
 
+static inline
 bool sl_set_delete_opt(SortedListSetNode ** root, 
                        void * key,
                        unsigned int keyHashValue,
@@ -180,6 +192,7 @@ bool sl_set_delete_opt(SortedListSetNode ** root,
     return false;
 }
 
+static inline
 void sl_set_delete(void * setParam, 
                    void * key,
                    unsigned int keySize){
@@ -193,6 +206,7 @@ void sl_set_delete(void * setParam,
                       set->are_equal);
 }
 
+static inline
 void sl_set_free_opt(SortedListSetNode ** root){
     SortedListSetNode * previous = (SortedListSetNode *)root;
     SortedListSetNode * current = previous->next;
@@ -203,12 +217,14 @@ void sl_set_free_opt(SortedListSetNode ** root){
     }
 }
 
+static inline
 void sl_set_free(void * setParam){
     SortedListSet * set = (SortedListSet *)setParam;
     sl_set_free_opt(&set->head);
     free(set);
 }
 
+static inline
 SortedListSetNode * sl_set_split_opt(SortedListSetNode ** root,
                                      unsigned int splitPattern){
     SortedListSetNode * previous = (SortedListSetNode *)root;
@@ -224,6 +240,7 @@ SortedListSetNode * sl_set_split_opt(SortedListSetNode ** root,
     return NULL;
 }
 
+static inline
 void sl_set_concat_opt(SortedListSetNode ** root,
                        SortedListSetNode * list){
     SortedListSetNode * previous = (SortedListSetNode *)root;
@@ -235,6 +252,7 @@ void sl_set_concat_opt(SortedListSetNode ** root,
     previous->next = list;
 }
 
+static inline
 void sl_set_append_opt(SortedListSetNode ** root,
                        SortedListSetNode * list){
     if(list == NULL){
@@ -249,6 +267,7 @@ void sl_set_append_opt(SortedListSetNode ** root,
     previous->next = list;
 }
 
+static inline
 void * sl_set_fold_opt(SortedListSetNode ** root,
                        void * initialValue,
                        void *(*f)(void * soFar, void * currentValue)){
@@ -262,12 +281,14 @@ void * sl_set_fold_opt(SortedListSetNode ** root,
     return soFar;
 }
 
+static inline
 void * sl_set_fold(SortedListSet * set,
                    void * initialValue,
                    void *(*f)(void * soFar, void * currentValue)){
     return sl_set_fold_opt(&set->head, initialValue, f);
 }
 
+static inline
 void *_______size_helper(void * soFarParam, void * currentValue){
     unsigned int * soFar = (unsigned int*)soFarParam;
     (void)currentValue;
@@ -276,16 +297,19 @@ void *_______size_helper(void * soFarParam, void * currentValue){
     return soFar;
 }
 
+static inline
 unsigned int sl_set_size_opt(SortedListSetNode ** root){
     unsigned int size = 0;
     sl_set_fold_opt(root, &size, _______size_helper);
     return size;
 }
 
+static inline
 unsigned int sl_set_size(SortedListSet * set){
     return sl_set_size_opt(&set->head);
 }
 
+static inline
 void sl_set_print(void * setParam){
     SortedListSet * set = (SortedListSet *)setParam;
     SortedListSetNode * previous = (SortedListSetNode *)set;
@@ -304,6 +328,7 @@ void sl_set_print(void * setParam){
     printf("]\n");
 }
 
+static inline
 char * sl_set_to_string(void * setParam){
     SortedListSet * set = (SortedListSet *)setParam;
     unsigned int numberOfElements = sl_set_size(set);
@@ -342,18 +367,7 @@ char * sl_set_to_string(void * setParam){
     return stringBuffer;
 }
 
-_Alignas(CACHE_LINE_SIZE)
-OOSetMethodTable SORTED_LIST_SET_METHOD_TABLE = 
-{
-    .free = &sl_set_free,
-    .insert = &sl_set_insert,
-    .insert_new = &sl_set_insert_new,
-    .lookup = &sl_set_lookup,
-    .delete = &sl_set_delete,
-    .to_string = &sl_set_to_string,
-    .print = &sl_set_print
-};
-
+static inline
 OOSet * oo_sl_set_create(unsigned int keyPosition,
                          void * (*extract_key)(void * v, int keyPos),
                          unsigned int (*hash_key)(void * k),

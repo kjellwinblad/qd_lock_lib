@@ -34,7 +34,7 @@ typedef struct {
     char pad[CACHE_LINE_SIZE - (2 * sizeof(void*)) % CACHE_LINE_SIZE];
 } OOLock;
 
-void oolock_free(OOLock * lock){
+static inline void oolock_free(OOLock * lock){
     lock->m->free(lock->lock);
     free(lock);
 }

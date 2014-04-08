@@ -24,6 +24,11 @@ typedef struct {
     SortedListSetNode ** buckets;
 }ChainedHashSet;
 
+extern
+_Alignas(CACHE_LINE_SIZE)
+OOSetMethodTable CHAINED_HASH_SET_METHOD_TABLE;
+
+static inline
 void ch_set_increase_size(ChainedHashSet * set){
     set->size = set->size + 1;
     if(set->size > set->expandTreshold){
@@ -47,6 +52,7 @@ void ch_set_increase_size(ChainedHashSet * set){
     }
 }
 
+static inline
 void ch_set_decrease_size(ChainedHashSet * set){
     set->size = set->size - 1;
     if(set->size < set->shrinkTreshold){
@@ -71,6 +77,7 @@ void ch_set_decrease_size(ChainedHashSet * set){
     }
 }
 
+static inline
 void ch_set_initialize(ChainedHashSet * set,
                        unsigned int keyPosition,
                        void * (*extract_key)(void * v, int keyPos),
@@ -92,6 +99,7 @@ void ch_set_initialize(ChainedHashSet * set,
     }
 }
 
+static inline
 ChainedHashSet * plain_ch_set_create(unsigned int keyPosition,
                                      void * (*extract_key)(void * v, int keyPos),
                                      unsigned int (*hash_key)(void * k),
@@ -107,6 +115,7 @@ ChainedHashSet * plain_ch_set_create(unsigned int keyPosition,
     return set;
 }
 
+static inline
 bool ch_set_insert_opt(ChainedHashSet * set,
                        void * value, 
                        unsigned int valueSize,
@@ -128,6 +137,7 @@ bool ch_set_insert_opt(ChainedHashSet * set,
     return oneAdded;
 }
 
+static inline
 void ch_set_insert(void * setParam, void * value, unsigned int valueSize){
     ChainedHashSet * set = (ChainedHashSet*)setParam;
     void * key = set->extract_key(value, set->keyPosition);
@@ -139,7 +149,7 @@ void ch_set_insert(void * setParam, void * value, unsigned int valueSize){
                       true);
 }
 
-
+static inline
 bool ch_set_insert_new(void * setParam, void * value, unsigned int valueSize){
     ChainedHashSet * set = (ChainedHashSet*)setParam;
     void * key = set->extract_key(value, set->keyPosition);
@@ -151,6 +161,7 @@ bool ch_set_insert_new(void * setParam, void * value, unsigned int valueSize){
                              false);
 }
 
+static inline
 void * ch_set_lookup(void * setParam, void * key){
     ChainedHashSet * set = (ChainedHashSet*)setParam;
     unsigned int hashValue = set->hash_key(key);
@@ -164,6 +175,7 @@ void * ch_set_lookup(void * setParam, void * key){
                              set->are_equal);
 }
 
+static inline
 void ch_set_delete(void * setParam, void * key, unsigned int keySize){
     (void)keySize;
     ChainedHashSet * set = (ChainedHashSet*)setParam;
@@ -181,6 +193,7 @@ void ch_set_delete(void * setParam, void * key, unsigned int keySize){
     }
 }
 
+static inline
 void ch_set_free(void * setParam){
     ChainedHashSet * set = (ChainedHashSet*)setParam;
     unsigned int numberOfBuckets = set->numberOfBuckets;
@@ -191,6 +204,7 @@ void ch_set_free(void * setParam){
     free(set);
 }
 
+static inline
 char * ch_set_to_string(void * setParam){
     ChainedHashSet * set = (ChainedHashSet*)setParam;
     unsigned int numberOfBuckets = set->numberOfBuckets;
@@ -226,6 +240,7 @@ char * ch_set_to_string(void * setParam){
     return resultString;
 }
 
+static inline
 void ch_set_print(void * setParam){
     ChainedHashSet * set = (ChainedHashSet*)setParam;
     char * str =  ch_set_to_string(set);
@@ -233,18 +248,8 @@ void ch_set_print(void * setParam){
     free(str);
 }
 
-_Alignas(CACHE_LINE_SIZE)
-OOSetMethodTable CHAINED_HASH_SET_METHOD_TABLE = 
-{
-    .free = &ch_set_free,
-    .insert = &ch_set_insert,
-    .insert_new = &ch_set_insert_new,
-    .lookup = &ch_set_lookup,
-    .delete = &ch_set_delete,
-    .to_string = &ch_set_to_string,
-    .print = &ch_set_print
-};
 
+static inline
 OOSet * oo_ch_set_create(unsigned int keyPosition,
                           void * (*extract_key)(void * v, int keyPos),
                           unsigned int (*hash_key)(void * k),

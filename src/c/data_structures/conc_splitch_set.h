@@ -24,6 +24,11 @@ typedef struct {
     LockAndSet subsets[CONC_SPLIT_SET_NUMBER_OF_SUBTABLES];
 }ConcSplitchSet;
 
+extern
+_Alignas(CACHE_LINE_SIZE)
+OOSetMethodTable CONC_SPLITCH_SET_METHOD_TABLE;
+
+static inline
 void csh_set_initialize(ConcSplitchSet * set,
                         unsigned int keyPosition,
                         void * (*extract_key)(void * v, int keyPos),
@@ -46,6 +51,7 @@ void csh_set_initialize(ConcSplitchSet * set,
     }
 }
 
+static inline
 ConcSplitchSet * plain_csh_set_create(unsigned int keyPosition,
                                       void * (*extract_key)(void * v, int keyPos),
                                       unsigned int (*hash_key)(void * k),
@@ -67,6 +73,7 @@ typedef struct {
     char value[];
 } CshSetInsertMessage;
 
+static inline
 void handle_csh_set_insert_message(unsigned int messageSize, void * message){
     unsigned int valueSize = messageSize - sizeof(CshSetInsertMessage);
     CshSetInsertMessage * insertMessage = (CshSetInsertMessage *) message;
@@ -77,6 +84,7 @@ void handle_csh_set_insert_message(unsigned int messageSize, void * message){
                       true);
 }
 
+static inline
 void csh_set_insert(void * setParam, void * value, unsigned int valueSize){
     ConcSplitchSet * set = (ConcSplitchSet*)setParam;
     void * key = set->extract_key(value, set->keyPosition);
@@ -114,6 +122,7 @@ typedef struct {
     unsigned char value[];
 }CshSetInsertNewMessage;
 
+static inline
 void handle_csh_set_insert_new_message(unsigned int messageSize, void * message){
     unsigned int valueSize = messageSize - sizeof(CshSetInsertMessage);
     CshSetInsertNewMessage * insertMessage = (CshSetInsertNewMessage *) message;
@@ -127,6 +136,7 @@ void handle_csh_set_insert_new_message(unsigned int messageSize, void * message)
                           memory_order_release);
 }
 
+static inline
 bool csh_set_insert_new(void * setParam, void * value, unsigned int valueSize){
     ConcSplitchSet * set = (ConcSplitchSet*)setParam;
     void * key = set->extract_key(value, set->keyPosition);
@@ -164,6 +174,7 @@ bool csh_set_insert_new(void * setParam, void * value, unsigned int valueSize){
     return returnValue;
 }
 
+static inline
 void * csh_set_lookup(void * setParam, void * key){
     ConcSplitchSet * set = (ConcSplitchSet*)setParam;
     unsigned int hashValue = set->hash_key(key);
@@ -190,6 +201,7 @@ typedef struct {
     unsigned char key[];
 }CshSetDeleteMessage;
 
+static inline
 void handle_csh_set_delete_message(unsigned int messageSize, void * message){
     (void)messageSize;
     CshSetDeleteMessage * deleteMessage = (CshSetDeleteMessage *) message;
@@ -198,6 +210,7 @@ void handle_csh_set_delete_message(unsigned int messageSize, void * message){
                   deleteMessage->keySize);
 }
 
+static inline
 void csh_set_delete(void * setParam, void * key, unsigned int keySize){
     ConcSplitchSet * set = (ConcSplitchSet*)setParam;
     unsigned int hashValue = set->hash_key(key);
@@ -222,6 +235,7 @@ void csh_set_delete(void * setParam, void * key, unsigned int keySize){
     }
 }
 
+static inline
 void csh_set_free(void * setParam){
     ConcSplitchSet * set = (ConcSplitchSet*)setParam;
     for(int i = 0; i < CONC_SPLIT_SET_NUMBER_OF_SUBTABLES; i++){
@@ -239,6 +253,7 @@ void csh_set_free(void * setParam){
     free(set);
 }
 
+static inline
 char * csh_set_to_string(void * setParam){
     ConcSplitchSet * set = (ConcSplitchSet*)setParam;
     char * subtableStrings[CONC_SPLIT_SET_NUMBER_OF_SUBTABLES];
@@ -265,6 +280,7 @@ char * csh_set_to_string(void * setParam){
     return resultString;
 }
 
+static inline
 void csh_set_print(void * setParam){
     ConcSplitchSet * set = (ConcSplitchSet*)setParam;
     char * str =  csh_set_to_string(set);
@@ -272,18 +288,7 @@ void csh_set_print(void * setParam){
     free(str);
 }
 
-_Alignas(CACHE_LINE_SIZE)
-OOSetMethodTable CONC_SPLITCH_SET_METHOD_TABLE =
-{
-    .free = &csh_set_free,
-    .insert = &csh_set_insert,
-    .insert_new = &csh_set_insert_new,
-    .lookup = &csh_set_lookup,
-    .delete = &csh_set_delete,
-    .to_string = &csh_set_to_string,
-    .print = &csh_set_print
-};
-
+static inline
 OOSet * oo_csh_set_create(unsigned int keyPosition,
                           void * (*extract_key)(void * v, int keyPos),
                           unsigned int (*hash_key)(void * k),

@@ -32,7 +32,7 @@ typedef struct QDQueueImpl {
 
 
 
-void qdq_initialize(QDQueue * q){
+static inline void qdq_initialize(QDQueue * q){
     for(int i = 0; i < QD_QUEUE_BUFFER_SIZE; i = i + sizeof(atomic_uintptr_t)){
         volatile atomic_uintptr_t * ptr = (void*)&q->buffer[i];
         atomic_store_explicit(ptr,
@@ -47,7 +47,7 @@ void qdq_initialize(QDQueue * q){
                            memory_order_release );
 }
 
-void qdq_open(QDQueue* q) {
+static inline void qdq_open(QDQueue* q) {
     atomic_store_explicit( &q->counter.value,
                            0, 
                            memory_order_relaxed );
@@ -56,8 +56,8 @@ void qdq_open(QDQueue* q) {
                            memory_order_release );
 }
 
-void * qdq_enqueue_get_buffer(QDQueue* q,
-                              unsigned int messageSize) {
+static inline void * qdq_enqueue_get_buffer(QDQueue* q,
+                                     unsigned int messageSize) {
     if(atomic_load_explicit( &q->closed.value, memory_order_acquire )){
         return NULL;
     }
@@ -83,7 +83,7 @@ void * qdq_enqueue_get_buffer(QDQueue* q,
     }
 }
 
-void qdq_enqueue_close_buffer(void * buffer,
+static inline void qdq_enqueue_close_buffer(void * buffer,
                               void (*funPtr)(unsigned int, void *)) {
     QDRequestRequestId * reqId =
         (QDRequestRequestId*)(&((char *)buffer)[-sizeof(QDRequestRequestId)] );
@@ -92,7 +92,7 @@ void qdq_enqueue_close_buffer(void * buffer,
                            memory_order_release );    
 }
 
-bool qdq_enqueue(QDQueue* q,
+static inline bool qdq_enqueue(QDQueue* q,
                  void (*funPtr)(unsigned int, void *), 
                  unsigned int messageSize,
                  void * messageAddress) {
@@ -132,7 +132,7 @@ bool qdq_enqueue(QDQueue* q,
 
 #include <stdlib.h>
 #include <stdio.h>
-void qdq_flush(QDQueue* q) {
+static inline void qdq_flush(QDQueue* q) {
     unsigned long todo = 0;
     bool open = true;
     while(open) {

@@ -106,7 +106,7 @@ typedef enum {
 
 // When calling `LL_*` functions the parameter must be of the correct
 // lock type.
-void * LL_create(LL_lock_type_name llLockType){
+static inline void * LL_create(LL_lock_type_name llLockType){
     if(TATAS_LOCK == llLockType){
         return oo_tatas_create();
     } else if (QD_LOCK == llLockType){

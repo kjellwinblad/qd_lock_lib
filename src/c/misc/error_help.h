@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void LL_error_and_exit_verbose(const char * file, const char * function, int line, char * message){
+static inline void LL_error_and_exit_verbose(const char * file, const char * function, int line, char * message){
     printf("ERROR IN FILE: %s, FUNCTION: %s, LINE: %d\n", file, function, line);
     printf("%s\n", message);
     printf("EXITING\n");

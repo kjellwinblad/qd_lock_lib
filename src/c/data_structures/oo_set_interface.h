@@ -21,6 +21,7 @@ typedef struct {
     char pad[CACHE_LINE_SIZE - (2 * sizeof(void*)) % CACHE_LINE_SIZE];
 } OOSet;
 
+static inline
 void ooset_free(OOSet * set){
     set->m->free(set->set);
     free(set);
