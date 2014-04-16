@@ -70,12 +70,12 @@ You first need to compile with Scons as explained above. When
 everything has compiled, you should be able to run the tests with the
 following commands:
 
-    ./bin_test QD_LOCK
-    ./bin_test MRQD_LOCK
-    ./bin_test TATAS_LOCK
-    ./bin_test MCS_LOCK
-    ./bin_test DRMCS_LOCK
-    ./bin_test CCSYNCH_LOCK
+    ./bin/test_lock QD_LOCK
+    ./bin/test_lock MRQD_LOCK
+    ./bin/test_lock TATAS_LOCK
+    ./bin/test_lock MCS_LOCK
+    ./bin/test_lock DRMCS_LOCK
+    ./bin/test_lock CCSYNCH_LOCK
 
 If this fails it might be because you are using an old version of
 clang. clang had a bug in its atomics API so it is not safe to use an
