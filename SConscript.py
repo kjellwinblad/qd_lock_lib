@@ -58,7 +58,10 @@ env = Environment(
     LINKFLAGS = ' '.join(std_link_flags),
     CPPPATH = ['src/c/'])
 
-
+for var in ['CC', 'CXX', 'CFLAGS', 'CXXFLAGS']:
+    os_value = os.getenv(var)
+    if os_value is not None:
+	    env[var] = os_value
 ######
 #Build
 ######
