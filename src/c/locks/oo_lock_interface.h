@@ -2,6 +2,7 @@
 #define OO_LOCK_INTERFACE_H
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include "misc/padded_types.h"
 
 typedef struct {
