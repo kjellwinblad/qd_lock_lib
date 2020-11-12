@@ -46,7 +46,7 @@ cc = 'clang'
 cxx = 'clang++'
 
 if use_gcc:
-    cc = 'gcc-4.8'
+    cc = 'gcc'
     cxx = 'g++'
 
 env = Environment(
