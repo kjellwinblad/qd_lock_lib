@@ -155,7 +155,9 @@ int test_mutual_exclusion(double delegatePercentageParm,
         pthread_t threads[i];
         LLPaddedLocalCounter localInCSCounters[i];
         LLPaddedSeed localSeeds[i];
-        ThreadLocalData * threadLocalData = aligned_alloc(CACHE_LINE_SIZE, sizeof(ThreadLocalData) * i);
+        size_t allocSize = sizeof(ThreadLocalData) * i;
+        allocSize += CACHE_LINE_SIZE_PAD(allocSize);
+        ThreadLocalData * threadLocalData = aligned_alloc(CACHE_LINE_SIZE, allocSize);
         for(int n = 0; n < i; n++){
             localInCSCounters[n].value = 0;
             localSeeds[n].value = n;
