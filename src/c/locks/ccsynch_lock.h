@@ -20,13 +20,13 @@
 typedef struct {
     volatile atomic_uintptr_t next;
     void (*requestFunction)(unsigned int, void *);
+    volatile atomic_int wait;
     unsigned int messageSize;
     unsigned char * buffer;
     bool completed;
-    volatile atomic_int wait;
     char pad2[CACHE_LINE_SIZE_PAD(sizeof(void *)*2 + 
                                   sizeof(unsigned int) +
-                                  CCSYNCH_BUFFER_SIZE +
+                                  sizeof(char *) +
                                   sizeof(bool) +
                                   sizeof(atomic_int))];
     unsigned char tempBuffer[CACHE_LINE_SIZE*8]; //used in ccsynch_delegate_or_lock 
