@@ -47,20 +47,16 @@ qd\_lock\_lib uses the [Scons](http://www.scons.org/) build system so
 you have to install that first. On Debian based systems, you can run
 `sudo apt-get install scons`.
 
-### clang
+### clang or GCC
 
-qd\_lock\_lib requires a recent version of clang. It has been tested
-with a version from the clang svn repository based on clang 3.4. Type
-the following in the root directory of the repository to compile with
+qd\_lock\_lib requires a recent version of clang or GCC. Type the
+following in the root directory of the repository to compile with
 clang:
 
     scons
 
-### gcc
-
-qd\_lock\_lib has been tested with gcc 4.7.3. Type
-the following in the root directory of the repository to compile with
-gcc:
+Type the following in the root directory of the repository to compile
+with gcc:
 
     scons --use_gcc
 

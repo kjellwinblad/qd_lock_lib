@@ -8,12 +8,6 @@
 // possible to swap between lock implementations in your application
 // with just a few line changes.
 
-// **NOTE FOR GCC** GCC does not provided the C11 keyword `_Generic`
-// yet. The full API is therefore not supported when compiling with
-// `scons --use_gcc`. The functions `LL_initialize` and `LL_destroy`
-// are not supported with GCC. The `LL_create` function does not
-// support a parameter staring with `PLAIN_*` with GCC.
-
 // To include this file:
 
 //     #include "locks/locks.h"
