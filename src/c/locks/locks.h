@@ -45,7 +45,6 @@
 
 //     TATASLock lock;
 //     LL_initialize(&lock)
-#ifdef __clang__
 #define LL_initialize(X) _Generic((X),      \
      TATASLock * : tatas_initialize((TATASLock *)X), \
      QDLock * : qd_initialize((QDLock *)X), \
@@ -53,21 +52,14 @@
      MCSLock * : mcs_initialize((MCSLock * )X), \
      MRQDLock * : mrqd_initialize((MRQDLock *)X) \
                                 )
-#else
-#define LL_initialize(X) LL_error_and_exit("Function not supported on GCC\n")
-#endif
 // ## LL_destroy
 // 
 // `LL_destroy(X)` destorys an initialized lock value. The parameter X
 // is a pointer to a lock value. This call can free resources
 // allocated by `LL_initialize(X)`.
-#ifdef __clang__
 #define LL_destroy(X) _Generic((X),      \
      default : UNUSED(X), \
                                )
-#else
-#define LL_destroy(X) LL_error_and_exit("Function not supported on GCC\n")
-#endif
 
 // ## LL_create
 
@@ -119,9 +111,7 @@ static inline void * LL_create(LL_lock_type_name llLockType){
         return oo_mcs_create();
     }else if (DRMCS_LOCK == llLockType){
         return oo_drmcs_create();
-    }
-#ifdef __clang__
-    else if(PLAIN_TATAS_LOCK == llLockType){
+    } else if(PLAIN_TATAS_LOCK == llLockType){
         return plain_tatas_create();
     } else if (PLAIN_QD_LOCK == llLockType){
         return plain_qd_create();
@@ -134,8 +124,8 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     }else if (PLAIN_DRMCS_LOCK == llLockType){
         return plain_drmcs_create();
     }
-#endif
-    LL_error_and_exit("Lock type not supprted with GCC\n");
+
+    LL_error_and_exit("Lock type not supported\n");
     return NULL;/* Should not be reachable */
 }
 
@@ -147,21 +137,16 @@ static inline void * LL_create(LL_lock_type_name llLockType){
 
 //     OOLock * lock = LL_create(QD_LOCK);
 //     LL_free(lock)
-#ifdef __clang__
 #define LL_free(X) _Generic((X),\
     OOLock * : oolock_free((OOLock *)X),        \
     default : free(X)           \
                             )
-#else
-#define LL_free(X) oolock_free((OOLock *)X)
-#endif
 
 // ## LL_lock
 
 // `LL_lock(X)` acquires the lock X. Only one thread can hold the lock
 // at a given moment. This call will block until X is acquired. X is a
 // pointer to a value of a lock type.
-#ifdef __clang__
 #define LL_lock(X) _Generic((X),         \
     TATASLock *: tatas_lock((TATASLock *)X),                \
     QDLock * : tatas_lock(&((QDLock *)X)->mutexLock),       \
@@ -170,10 +155,7 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MCSLock * : mcs_lock((MCSLock *)X),       \
     DRMCSLock * : drmcs_lock((DRMCSLock *)X),       \
     OOLock * : ((OOLock *)X)->m->lock(((OOLock *)X)->lock) \
-                                )
-#else
-#define LL_lock(X) ((OOLock *)X)->m->lock(((OOLock *)X)->lock)
-#endif                  
+                                )                  
 
 // ## LL_unlock
 
@@ -187,7 +169,6 @@ static inline void * LL_create(LL_lock_type_name llLockType){
 //     LL_lock(lock)
 //     Critical section code...
 //     LL_unlock(lock)
-#ifdef __clang__
 #define LL_unlock(X) _Generic((X),    \
     TATASLock *: tatas_unlock((TATASLock *)X), \
     QDLock * : tatas_unlock(&((QDLock *)X)->mutexLock), \
@@ -197,15 +178,11 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     DRMCSLock * : drmcs_unlock(X), \
     OOLock * : ((OOLock *)X)->m->unlock(((OOLock *)X)->lock)      \
     )
-#else
-#define LL_unlock(X) ((OOLock *)X)->m->unlock(((OOLock *)X)->lock)
-#endif
 
 // ## LL_is\_locked
 
 // `LL_is_locked(X)` returns true if the lock `X` is locked and false
 // if it is not locked. X is a pointer to a value of a lock type.
-#ifdef __clang__
 #define LL_is_locked(X) _Generic((X),    \
     TATASLock *: tatas_is_locked((TATASLock *)X), \
     QDLock * : tatas_is_locked(&((QDLock *)X)->mutexLock), \
@@ -215,16 +192,12 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MRQDLock * : tatas_is_locked(&((MRQDLock *)X)->mutexLock), \
     OOLock * : ((OOLock *)X)->m->is_locked(((OOLock *)X)->lock)      \
     )
-#else
-#define LL_is_locked(X) ((OOLock *)X)->m->is_locked(((OOLock *)X)->lock)
-#endif
 
 // ## LL_try\_lock
 
 // `LL_try_lock(X)` tries to lock `X`. The function returns true if
 // `X` was successfully locked and false otherwise. X is a pointer to a
 // value of a lock type.
-#ifdef __clang__
 #define LL_try_lock(X) _Generic((X),    \
     TATASLock *: tatas_try_lock(X), \
     MRQDLock * : tatas_try_lock(&((MRQDLock *)X)->mutexLock), \
@@ -234,13 +207,9 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     DRMCSLock * : drmcs_try_lock(X), \
     OOLock * : ((OOLock *)X)->m->try_lock(((OOLock *)X)->lock)      \
     )
-#else
-#define LL_try_lock(X) ((OOLock *)X)->m->try_lock(((OOLock *)X)->lock)
-#endif
 
 // ## LL_rlock
 
-#ifdef __clang__
 #define LL_rlock(X) _Generic((X),         \
     TATASLock *: tatas_lock((TATASLock *)X),                \
     QDLock * : tatas_lock(&((QDLock *)X)->mutexLock),       \
@@ -249,14 +218,10 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     DRMCSLock * : drmcs_lock(X),       \
     MRQDLock * : mrqd_rlock((MRQDLock *)X),       \
     OOLock * : ((OOLock *)X)->m->rlock(((OOLock *)X)->lock) \
-                                )
-#else
-#define LL_rlock(X) ((OOLock *)X)->m->rlock(((OOLock *)X)->lock)
-#endif                  
+                                )                
 
 // ## LL_runlock
 
-#ifdef __clang__
 #define LL_runlock(X) _Generic((X),    \
     TATASLock *: tatas_unlock((TATASLock *)X), \
     QDLock * : tatas_unlock(&((QDLock *)X)->mutexLock), \
@@ -266,9 +231,6 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MRQDLock * : mrqd_runlock((MRQDLock *)X), \
     OOLock * : ((OOLock *)X)->m->runlock(((OOLock *)X)->lock)      \
     )
-#else
-#define LL_runlock(X) ((OOLock *)X)->m->runlock(((OOLock *)X)->lock)
-#endif
 
 
 // ## LL_delegate
@@ -315,7 +277,6 @@ static inline void * LL_create(LL_lock_type_name llLockType){
 // can use the `LL_delegate` function and also how values can be
 // written back.
 
-#ifdef __clang__
 #define LL_delegate(X, funPtr, messageSize, messageAddress) _Generic((X),      \
     TATASLock *: tatas_delegate((TATASLock *)X, funPtr, messageSize, messageAddress), \
     QDLock * : qd_delegate((QDLock *)X, funPtr, messageSize, messageAddress), \
@@ -325,16 +286,12 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MRQDLock * : mrqd_delegate((MRQDLock *)X, funPtr, messageSize, messageAddress), \
     OOLock * : ((OOLock *)X)->m->delegate(((OOLock *)X)->lock, funPtr, messageSize, messageAddress) \
     )
-#else
-#define LL_delegate(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
-#endif
 
 // ## LL_delegate_wait
 
 // Works in the same way as LL_delegate but the function will not
 // return until the delegated critical section has exexuted
 
-#ifdef __clang__
 #define LL_delegate_wait(X, funPtr, messageSize, messageAddress) _Generic((X),      \
     TATASLock *: tatas_delegate((TATASLock *)X, funPtr, messageSize, messageAddress), \
     QDLock * : qd_delegate_wait((QDLock *)X, funPtr, messageSize, messageAddress), \
@@ -344,9 +301,6 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MRQDLock * : mrqd_delegate_wait((MRQDLock *)X, funPtr, messageSize, messageAddress), \
     OOLock * : ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress) \
     )
-#else
-#define LL_delegate_wait(X, funPtr, messageSize, messageAddress) ((OOLock *)X)->m->delegate_wait(((OOLock *)X)->lock, funPtr, messageSize, messageAddress)
-#endif
 
 
 // ## LL_delegate_or_lock
@@ -356,7 +310,6 @@ static inline void * LL_create(LL_lock_type_name llLockType){
 // information about how to use the LL_delegate_or_lock family of
 // functions.
 
-#ifdef __clang__
 #define LL_delegate_or_lock(X, messageSize) _Generic((X),             \
     TATASLock *: tatas_delegate_or_lock((TATASLock *)X, messageSize), \
     QDLock * : qd_delegate_or_lock((QDLock *)X, messageSize), \
@@ -366,11 +319,7 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MRQDLock * : mrqd_delegate_or_lock((MRQDLock *)X, messageSize), \
     OOLock * : ((OOLock *)X)->m->delegate_or_lock(((OOLock *)X)->lock, messageSize) \
     )
-#else
-#define LL_delegate_or_lock(X, messageSize) ((OOLock *)X)->m->delegate_or_lock(((OOLock *)X)->lock, messageSize)
-#endif
 
-#ifdef __clang__
 #define LL_close_delegate_buffer(X, buffer, funPtr) _Generic((X),        \
     TATASLock *: printf("Can not be called\n"), \
     QDLock * : qd_close_delegate_buffer(buffer, funPtr), \
@@ -380,12 +329,8 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MRQDLock * : mrqd_close_delegate_buffer(buffer, funPtr), \
     OOLock * : ((OOLock *)X)->m->close_delegate_buffer(buffer, funPtr) \
     )
-#else
-#define LL_close_delegate_buffer(X, buffer, funPtr) ((OOLock *)X)->m->close_delegate_buffer(buffer, funPtr)
-#endif
 
 
-#ifdef __clang__
 #define LL_delegate_unlock(X) _Generic((X),         \
     TATASLock *: tatas_unlock((TATASLock *)X),                \
     QDLock * : qd_delegate_unlock(((QDLock *)X)), \
@@ -395,8 +340,5 @@ static inline void * LL_create(LL_lock_type_name llLockType){
     MRQDLock * : mrqd_delegate_unlock((MRQDLock *)X),       \
     OOLock * : ((OOLock *)X)->m->delegate_unlock(((OOLock *)X)->lock) \
                                 )
-#else
-#define LL_delegate_unlock(X) ((OOLock *)X)->m->delegate_unlock(((OOLock *)X)->lock)
-#endif
 
 #endif
